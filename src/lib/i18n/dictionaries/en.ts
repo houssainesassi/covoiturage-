@@ -1,3 +1,7 @@
+import type { PluralForms } from "../format";
+
+const p = (one: string, other: string): PluralForms => ({ one, other });
+
 const en = {
   meta: {
     title: "Wasalni — Carpooling in El Fahs, Zaghouan & all of Tunisia",
@@ -54,13 +58,13 @@ const en = {
     or: "or",
   },
   units: {
-    seats: { one: "{count} seat", other: "{count} seats" },
-    seatsLeft: { one: "{count} seat left", other: "{count} seats left" },
-    passengers: { one: "{count} passenger", other: "{count} passengers" },
-    trips: { one: "{count} trip", other: "{count} trips" },
-    reviews: { one: "{count} review", other: "{count} reviews" },
-    results: { one: "{count} ride found", other: "{count} rides found" },
-    pendingRequests: { one: "{count} pending request", other: "{count} pending requests" },
+    seats: p("{count} seat", "{count} seats"),
+    seatsLeft: p("{count} seat left", "{count} seats left"),
+    passengers: p("{count} passenger", "{count} passengers"),
+    trips: p("{count} trip", "{count} trips"),
+    reviews: p("{count} review", "{count} reviews"),
+    results: p("{count} ride found", "{count} rides found"),
+    pendingRequests: p("{count} pending request", "{count} pending requests"),
     km: "{count} km",
   },
   nav: {
@@ -201,7 +205,7 @@ const en = {
       "Share the road with verified drivers and passengers. Cheaper than travelling alone, friendlier than waiting for a louage.",
     regionTitle: "Popular rides from {city}",
     regionSubtitle: "Live departures from El Fahs and the Zaghouan governorate.",
-    upcoming: { one: "{count} upcoming ride", other: "{count} upcoming rides" },
+    upcoming: p("{count} upcoming ride", "{count} upcoming rides"),
     fromPrice: "from {price}",
     noTripsYet: "No ride yet, be the first to offer one",
     popularTitle: "Popular destinations",
@@ -341,7 +345,7 @@ const en = {
     paymentNote: "Pay the driver directly in cash at the meeting point.",
     newMember: "New member",
     ratingLine: "{rating}/5 · {count}",
-    tripsDriven: { one: "{count} ride driven", other: "{count} rides driven" },
+    tripsDriven: p("{count} ride driven", "{count} rides driven"),
     mapTitle: "Route",
     routeApprox: "Approximate route",
     shareTitle: "{from} → {to} on {date}",
@@ -359,7 +363,7 @@ const en = {
     findRide: "Find a ride",
     publishRide: "Offer a ride",
     pendingReviewsTitle: "Share your experience",
-    pendingReviewsBody: { one: "{count} traveller is waiting for your review.", other: "{count} travellers are waiting for your review." },
+    pendingReviewsBody: p("{count} traveller is waiting for your review.", "{count} travellers are waiting for your review."),
     completeProfileTitle: "Complete your profile",
     completeProfileBody: "Add a photo and phone number. Members with a complete profile get more bookings.",
     suspendedTitle: "Account suspended",
@@ -463,7 +467,7 @@ const en = {
     submitEdit: "Save changes",
     routeInfo: "{km} · about {duration}",
     routeLocked: "Towns are locked because passengers have already booked.",
-    seatsLocked: { one: "{count} seat is already booked.", other: "{count} seats are already booked." },
+    seatsLocked: p("{count} seat is already booked.", "{count} seats are already booked."),
     selectCity: "Select a town",
     calculating: "Calculating route…",
   },
@@ -731,6 +735,8 @@ const en = {
       cancel_booking: "Cancelled a booking",
     },
     filterCity: "Filter by town",
+    reviewer: "Author",
+    reviewee: "About",
   },
   footer: {
     tagline: "Carpooling in El Fahs, Zaghouan and all of Tunisia.",

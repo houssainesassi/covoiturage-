@@ -733,6 +733,8 @@ const fr: Dictionary = {
       cancel_booking: "Réservation annulée",
     },
     filterCity: "Filtrer par ville",
+    reviewer: "Auteur",
+    reviewee: "Concerne",
   },
   footer: {
     tagline: "Le covoiturage à El Fahs, Zaghouan et dans toute la Tunisie.",

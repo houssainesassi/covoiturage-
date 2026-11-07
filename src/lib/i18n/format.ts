@@ -92,3 +92,8 @@ export function tunisTimeKey(d: Date): string {
 export function tunisLocalToISO(date: string, time: string): string {
   return new Date(`${date}T${time}:00${TUNIS_OFFSET}`).toISOString();
 }
+
+/** Tomorrow's date in Tunisia (`YYYY-MM-DD`). */
+export function tunisTomorrowKey(): string {
+  return tunisDateKey(new Date(Date.now() + 86400000));
+}

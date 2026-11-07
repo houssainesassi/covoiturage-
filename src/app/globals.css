@@ -1,26 +1,55 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  --font-sans: var(--font-jakarta), var(--font-arabic), ui-sans-serif, system-ui, sans-serif;
+  --font-arabic-first: var(--font-arabic), var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-brand-50: #effaf6;
+  --color-brand-100: #d8f3e9;
+  --color-brand-200: #b3e6d4;
+  --color-brand-300: #80d2b9;
+  --color-brand-400: #4bb799;
+  --color-brand-500: #279c80;
+  --color-brand-600: #1a7e68;
+  --color-brand-700: #176556;
+  --color-brand-800: #165146;
+  --color-brand-900: #14433b;
+  --color-brand-950: #08261f;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --color-accent-50: #fff4ed;
+  --color-accent-100: #ffe6d4;
+  --color-accent-400: #ff8a4c;
+  --color-accent-500: #f76a25;
+  --color-accent-600: #e5500f;
+
+  --color-sand-50: #fbfaf7;
+  --color-sand-100: #f4f1ea;
+  --color-sand-200: #e9e4d8;
+
+  --radius-card: 1.25rem;
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 4px 16px -4px rgb(16 24 40 / 0.08);
+  --shadow-lift: 0 2px 4px rgb(16 24 40 / 0.04), 0 16px 32px -8px rgb(16 24 40 / 0.14);
+
+  --animate-fade-up: fade-up 0.4s ease-out both;
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+html { -webkit-tap-highlight-color: transparent; }
+html[dir="rtl"] body { font-family: var(--font-arabic-first); }
+body { background: var(--color-sand-50); color: var(--color-slate-900); }
+
+:focus-visible { outline: 2px solid var(--color-brand-500); outline-offset: 2px; }
+
+/* Leaflet */
+.leaflet-container { font: inherit; z-index: 0; border-radius: inherit; }
+.wasalni-pin { background: transparent; border: 0; }
+
+dialog::backdrop { background: rgb(15 23 42 / 0.45); backdrop-filter: blur(2px); }
+dialog[open] { animation: fade-up 0.2s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }
