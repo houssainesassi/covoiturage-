@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, CalendarCheck, Car, Landmark, MapPin, Search, ShieldCheck, Users } from "lucide-react";
+import { ArrowRight, Banknote, Car, CirclePlus, Flag, Landmark, ListChecks, MapPin, MessageCircle, Phone, Search, Star, UserCheck, Users } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getLocations } from "@/lib/locations";
 import { toLite } from "@/lib/location-lite";
@@ -58,16 +58,77 @@ export default async function HomePage() {
         <div className="pointer-events-none absolute inset-0 opacity-[0.12]" style={{ backgroundImage: "radial-gradient(circle at 20% 20%, #fff 0, transparent 35%), radial-gradient(circle at 80% 0%, #ff8a4c 0, transparent 30%)" }} aria-hidden />
         <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-14 sm:px-6 sm:pb-24 sm:pt-20">
           <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold ring-1 ring-white/20 backdrop-blur"><MapPin className="size-3.5" aria-hidden />{d.home.heroBadge}</p>
-          <h1 className="mt-5 max-w-3xl text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl lg:text-6xl animate-fade-up">{d.home.heroTitle}</h1>
-          <p className="mt-4 max-w-2xl text-lg text-brand-100">{d.home.heroSubtitle}</p>
-          <div className="mt-8 max-w-5xl text-slate-900">
-            <SearchForm locations={lite} initial={{ from: home?.slug }} />
+          <h1 className="mt-5 max-w-3xl text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl lg:text-6xl animate-fade-up">{d.home.heroTitle}</h1>
+          <p className="mt-4 max-w-2xl text-base text-brand-100 sm:text-lg">{d.home.heroSubtitle}</p>
+
+          {/* Two primary actions */}
+          <div className="mt-8 grid max-w-3xl gap-3 sm:grid-cols-2">
+            <Link href="/search" className="group flex min-h-20 items-center gap-4 rounded-2xl bg-white p-4 text-slate-900 shadow-lg transition hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/60">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white"><Search className="size-6" aria-hidden /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-lg font-bold">{d.home.heroFind}</span>
+                <span className="block text-sm text-slate-500">{d.home.heroFindHint}</span>
+              </span>
+              <ArrowRight className="size-5 shrink-0 text-brand-600 transition group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" aria-hidden />
+            </Link>
+            <Link href="/dashboard/trips/new" className="group flex min-h-20 items-center gap-4 rounded-2xl bg-accent-500 p-4 text-white shadow-lg transition hover:bg-accent-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/60">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-white/20"><CirclePlus className="size-6" aria-hidden /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-lg font-bold">{d.home.heroOffer}</span>
+                <span className="block text-sm text-white/85">{d.home.heroOfferHint}</span>
+              </span>
+              <ArrowRight className="size-5 shrink-0 transition group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" aria-hidden />
+            </Link>
+          </div>
+
+          <div className="mt-8 max-w-5xl">
+            <p className="mb-2 text-sm font-semibold text-brand-100">{d.home.heroSearchLabel}</p>
+            <div className="text-slate-900"><SearchForm locations={lite} initial={{ from: home?.slug }} /></div>
           </div>
           <dl className="mt-8 flex flex-wrap gap-x-8 gap-y-2 text-sm text-brand-100">
             <div><dt className="sr-only">{d.home.statsTrips}</dt><dd><strong className="text-xl text-white">{formatNumber(upcoming?.length ?? 0, locale)}</strong> {d.home.statsTrips}</dd></div>
             <div><dd><strong className="text-xl text-white">{formatNumber(locations.length, locale)}</strong> {d.home.statsCities}</dd></div>
             <div><dd><strong className="text-xl text-white">{formatNumber(24, locale)}</strong> {d.home.statsGovernorates}</dd></div>
           </dl>
+        </div>
+      </section>
+
+      {/* How it works — right after the hero so first-time visitors see it immediately */}
+      <section id="how" className="scroll-mt-20 bg-white py-14">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <h2 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">{d.home.howTitle}</h2>
+          <p className="mx-auto mt-2 max-w-2xl text-center text-slate-600">{d.home.howSubtitle}</p>
+          <div className="mt-10 grid gap-6 lg:grid-cols-2">
+            {[
+              { title: d.home.howPassengerTitle, steps: d.home.how, icons: [Search, ListChecks, Car], cta: <ButtonLink href="/search" size="lg" className="w-full sm:w-auto"><Search className="size-5" aria-hidden />{d.home.heroFind}</ButtonLink>, Head: Search, tone: "bg-brand-50 text-brand-700" },
+              { title: d.home.howDriverTitle, steps: d.home.howDriver, icons: [CirclePlus, UserCheck, Users], cta: <ButtonLink href="/dashboard/trips/new" variant="accent" size="lg" className="w-full sm:w-auto"><CirclePlus className="size-5" aria-hidden />{d.home.heroOffer}</ButtonLink>, Head: Car, tone: "bg-accent-50 text-accent-600" },
+            ].map((col) => (
+              <div key={col.title} className="flex flex-col rounded-3xl border border-slate-200 bg-sand-100/60 p-5 sm:p-7">
+                <h3 className="flex items-center gap-3 text-xl font-bold">
+                  <span className={`flex size-10 items-center justify-center rounded-xl ${col.tone}`}><col.Head className="size-5" aria-hidden /></span>
+                  {col.title}
+                </h3>
+                <ol className="mt-6 flex-1 space-y-5">
+                  {col.steps.map((s, i) => {
+                    const Icon = col.icons[i] ?? Search;
+                    return (
+                      <li key={s.title} className="flex gap-4">
+                        <span className="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-brand-600 shadow-sm ring-1 ring-slate-200">
+                          <Icon className="size-5" aria-hidden />
+                          <span className="absolute -top-1 -end-1 flex size-5 items-center justify-center rounded-full bg-brand-600 text-[11px] font-bold text-white">{i + 1}</span>
+                        </span>
+                        <div className="min-w-0">
+                          <p className="font-semibold">{s.title}</p>
+                          <p className="mt-0.5 text-slate-600">{s.body}</p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+                <div className="mt-6">{col.cta}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -103,7 +164,7 @@ export default async function HomePage() {
             </div>
             <Link href="/search" className="text-sm font-semibold text-brand-700 hover:underline">{d.common.seeAll}</Link>
           </div>
-          <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {(showPast ? past! : recent ?? []).map((t) => <TripCard key={t.id} trip={toCard(t)} locations={byId} d={d} locale={locale} />)}
           </div>
           {loadError && <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{d.errors.unknown}</p>}
@@ -128,32 +189,25 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* How it works */}
-      <section id="how" className="bg-white py-14">
+      {/* Trust: how the platform connects people */}
+      <section id="trust" className="bg-white py-14">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <h2 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">{d.home.howTitle}</h2>
-          <ol className="mt-10 grid gap-6 md:grid-cols-3">
-            {d.home.how.map((s, i) => {
-              const Icon = [Search, CalendarCheck, Users][i];
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{d.home.trustTitle}</h2>
+          <p className="mt-2 max-w-3xl text-slate-600">{d.home.trustSubtitle}</p>
+          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {d.home.trustItems.map((it, i) => {
+              const Icon = [Users, MessageCircle, Phone, Banknote, Star, Flag][i] ?? Users;
               return (
-                <li key={s.title} className="rounded-2xl border border-slate-200 p-6 text-center">
-                  <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-600"><Icon className="size-6" aria-hidden /></span>
-                  <h3 className="mt-4 text-lg font-semibold">{i + 1}. {s.title}</h3>
-                  <p className="mt-1 text-slate-500">{s.body}</p>
+                <li key={it.title} className="flex gap-4 rounded-2xl border border-slate-200 p-5">
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><Icon className="size-5" aria-hidden /></span>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold">{it.title}</h3>
+                    <p className="mt-1 text-sm text-slate-600">{it.body}</p>
+                  </div>
                 </li>
               );
             })}
-          </ol>
-          <div className="mt-12 grid gap-6 md:grid-cols-2">
-            {[{ title: d.home.passengersTitle, items: d.home.passengersItems, Icon: ShieldCheck }, { title: d.home.driversTitle, items: d.home.driversItems, Icon: Car }].map((b) => (
-              <div key={b.title} className="rounded-2xl bg-sand-100 p-6">
-                <h3 className="flex items-center gap-2 text-lg font-semibold"><b.Icon className="size-5 text-brand-600" aria-hidden />{b.title}</h3>
-                <ul className="mt-4 space-y-2">
-                  {b.items.map((it) => <li key={it} className="flex gap-2 text-slate-700"><BadgeCheck className="mt-0.5 size-5 shrink-0 text-brand-600" aria-hidden />{it}</li>)}
-                </ul>
-              </div>
-            ))}
-          </div>
+          </ul>
         </div>
       </section>
 
