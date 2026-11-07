@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { IBM_Plex_Sans_Arabic, Plus_Jakarta_Sans } from "next/font/google";
 import { Toaster } from "sonner";
+import { Analytics } from "@vercel/analytics/next";
 import { getI18n } from "@/lib/i18n/server";
 import { I18nProvider } from "@/lib/i18n/client";
 import { Navbar } from "@/components/layout/navbar";
@@ -38,6 +39,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           </Suspense>
           <Toaster position="top-center" dir={dir} richColors closeButton />
         </I18nProvider>
+        <Analytics />
       </body>
     </html>
   );

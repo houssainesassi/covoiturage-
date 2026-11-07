@@ -54,8 +54,8 @@ export const tripSchema = z.object({
   vehicleId: z.string().optional(),
   luggage: z.enum(["none", "small", "medium", "large"]),
   description: optionalText(1000),
-  distanceKm: z.coerce.number().min(0).max(2000).optional().catch(undefined),
-  durationMin: z.coerce.number().int().min(0).max(3000).optional().catch(undefined),
+  distanceKm: z.preprocess((x) => (x === "" ? undefined : x), z.coerce.number().min(0).max(2000).optional()).catch(undefined),
+  durationMin: z.preprocess((x) => (x === "" ? undefined : x), z.coerce.number().int().min(0).max(3000).optional()).catch(undefined),
 });
 
 export const vehicleSchema = z.object({

@@ -136,6 +136,7 @@ const en = {
     invalid_seats: "Choose a valid number of seats.",
     message_too_long: "Your message is too long.",
     rate_limited: "Too many attempts. Please wait a moment and try again.",
+    email_send_failed: "We couldn't send the confirmation email. Please try again later or contact support.",
     trip_not_found: "This trip no longer exists.",
     cannot_book_own_trip: "You can't book your own trip.",
     trip_not_bookable: "This trip can no longer be booked.",

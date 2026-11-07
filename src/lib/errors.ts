@@ -39,6 +39,7 @@ export function toErrorCode(error: AnyError): ErrorCode {
   if (/invalid login credentials/i.test(msg)) return "invalid_credentials";
   if (/email not confirmed/i.test(msg)) return "email_not_confirmed";
   if (/already registered/i.test(msg)) return "email_taken";
+  if (/error sending (confirmation|recovery|magic link)? ?email/i.test(msg)) return "email_send_failed";
   if (/row-level security|permission denied/i.test(msg)) return "forbidden";
   console.error("[unmapped error]", error);
   return "unknown";

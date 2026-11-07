@@ -22,7 +22,7 @@ async function main() {
   const page = await ctx.newPage();
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  page.on("console", (m) => m.type() === "error" && !/Failed to load resource/.test(m.text()) && errors.push(m.text()));
+  page.on("console", (m) => m.type() === "error" && !/Failed to load resource|_vercel\/insights/.test(m.text()) && errors.push(m.text()));
 
   console.log("Home & search");
   await page.goto(BASE + "/");
@@ -47,9 +47,9 @@ async function main() {
   console.log("Accent/Arabic-insensitive city search");
   await page.goto(BASE + "/search");
   await page.fill("#search-from", "قابس");
-  ok("Arabic query finds Gabès", await page.locator('[role="option"]', { hasText: "Gabès" }).first().isVisible());
+  ok("Arabic query finds Gabès", await page.locator('[role="option"]', { hasText: "Gabès" }).first().waitFor({ timeout: 5000 }).then(() => true, () => false));
   await page.fill("#search-from", "medenine");
-  ok("accent-free query finds Médenine", await page.locator('[role="option"]', { hasText: "Médenine" }).first().isVisible());
+  ok("accent-free query finds Médenine", await page.locator('[role="option"]', { hasText: "Médenine" }).first().waitFor({ timeout: 5000 }).then(() => true, () => false));
 
   console.log("Auth guards & forms");
   await page.goto(BASE + "/dashboard/trips/new");

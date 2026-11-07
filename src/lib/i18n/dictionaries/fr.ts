@@ -134,6 +134,7 @@ const fr: Dictionary = {
     invalid_seats: "Choisissez un nombre de places valide.",
     message_too_long: "Votre message est trop long.",
     rate_limited: "Trop de tentatives. Patientez un instant puis réessayez.",
+    email_send_failed: "Impossible d’envoyer l’e-mail de confirmation. Réessayez plus tard ou contactez le support.",
     trip_not_found: "Ce trajet n'existe plus.",
     cannot_book_own_trip: "Vous ne pouvez pas réserver votre propre trajet.",
     trip_not_bookable: "Ce trajet ne peut plus être réservé.",
