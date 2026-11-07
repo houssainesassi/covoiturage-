@@ -8,6 +8,7 @@ import { I18nProvider } from "@/lib/i18n/client";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { FlashToast } from "@/components/ui/client";
+import { InstallPrompt, captureInstallPromptScript } from "@/components/layout/install-prompt";
 import { env } from "@/lib/env";
 import "./globals.css";
 
@@ -20,6 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: env.siteUrl ? new URL(env.siteUrl) : undefined,
     title: { default: d.meta.title, template: `%s · ${d.common.appName}` },
     description: d.meta.description,
+    appleWebApp: { capable: true, title: d.common.appName, statusBarStyle: "default" },
   };
 }
 
@@ -29,6 +31,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const { locale, d, dir } = await getI18n();
   return (
     <html lang={locale} dir={dir} className={`${jakarta.variable} ${arabic.variable} h-full antialiased`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: captureInstallPromptScript }} />
+      </head>
       <body className="flex min-h-full flex-col">
         <I18nProvider locale={locale} dictionary={d}>
           <Navbar />
@@ -37,6 +42,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <Suspense>
             <FlashToast />
           </Suspense>
+          <InstallPrompt />
           <Toaster position="top-center" dir={dir} richColors closeButton />
         </I18nProvider>
         <Analytics />
