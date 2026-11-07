@@ -10,7 +10,7 @@ export default async function MessagesPage() {
   return (
     <div>
       <PageHeader title={d.messages.title} />
-      <Card className="grid overflow-hidden md:grid-cols-[20rem_1fr]">
+      <Card className="grid grid-cols-1 overflow-hidden md:grid-cols-[20rem_minmax(0,1fr)]">
         <div className="max-h-[70vh] overflow-y-auto md:border-e md:border-slate-200"><ConversationList userId={user.id} /></div>
         <div className="hidden items-center justify-center p-10 text-center text-slate-400 md:flex">
           <div><MessageCircle className="mx-auto size-10" aria-hidden /><p className="mt-2 text-sm">{d.messages.select}</p></div>

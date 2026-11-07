@@ -17,7 +17,7 @@ export function SearchFilters() {
   };
   const hasFilters = ["maxPrice", "time", "rating"].some((k) => params.get(k));
   return (
-    <div className="space-y-4">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:gap-4">
       <div>
         <Label htmlFor="f-sort">{d.common.sortBy}</Label>
         <Select id="f-sort" value={params.get("sort") ?? "departure"} onChange={(e) => set("sort", e.target.value === "departure" ? "" : e.target.value)}>
@@ -53,7 +53,7 @@ export function SearchFilters() {
       {hasFilters && (
         <button
           type="button"
-          className="text-sm font-semibold text-brand-700 hover:underline"
+          className="col-span-2 justify-self-start text-sm font-semibold text-brand-700 hover:underline lg:col-span-1"
           onClick={() => {
             const p = new URLSearchParams(params);
             ["maxPrice", "time", "rating", "page"].forEach((k) => p.delete(k));

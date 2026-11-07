@@ -38,7 +38,7 @@ export async function Navbar() {
           </Link>
         </nav>
         <div className="ms-auto flex items-center gap-1.5">
-          <LanguageSwitcher className="hidden md:inline-flex" />
+          <div className="hidden md:block"><LanguageSwitcher /></div>
           {user ? (
             <>
               <MessagesBadge userId={user.id} initial={unreadMessages} />

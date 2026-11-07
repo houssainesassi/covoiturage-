@@ -89,7 +89,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
       <SearchForm compact locations={locations.map(toLite)} initial={{ from: from?.slug, to: to?.slug, date, seats }} />
-      <div className="mt-8 grid gap-8 lg:grid-cols-[16rem_1fr]">
+      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[16rem_minmax(0,1fr)]">
         <aside>
           <details className="group rounded-2xl border border-slate-200 bg-white p-4 lg:open:block" open>
             <summary className="flex cursor-pointer items-center gap-2 font-semibold lg:pointer-events-none"><SlidersHorizontal className="size-4" aria-hidden />{d.common.filters}</summary>
@@ -102,7 +102,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
           <p className="mb-4 text-sm text-slate-500">{error ? d.errors.unknown : plural(d.units.results, total, locale)}</p>
           {rows.length > 0 ? (
             <>
-              <div className="grid gap-4 xl:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 {rows.map((r) => (
                   <TripCard
                     key={r.id}
@@ -132,7 +132,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
               {past.length > 0 && (
                 <div>
                   <h2 className="mb-3 font-semibold">{from || to ? d.search.pastTitle : d.home.pastTitle}</h2>
-                  <div className="grid gap-4 xl:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                     {past.map((t) => <TripCard key={t.id} trip={t} locations={byId} d={d} locale={locale} />)}
                   </div>
                 </div>

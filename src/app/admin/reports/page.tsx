@@ -42,7 +42,7 @@ export default async function AdminReportsPage({ searchParams }: PageProps<"/adm
           {reports.map((r) => {
             const msg = r.message_id ? messages.get(r.message_id) : null;
             return (
-              <Card key={r.id} className="grid gap-4 p-5 md:grid-cols-[1fr_18rem]">
+              <Card key={r.id} className="grid grid-cols-1 gap-4 p-5 md:grid-cols-[minmax(0,1fr)_18rem]">
                 <div className="space-y-2 text-sm">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge tone="danger">{d.report.reasons[r.reason]}</Badge>

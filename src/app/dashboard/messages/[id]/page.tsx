@@ -35,7 +35,7 @@ export default async function ConversationPage({ params }: PageProps<"/dashboard
   const route = conv.trip ? routeLabel(locName(locs.get(conv.trip.origin_id), locale), locName(locs.get(conv.trip.destination_id), locale), locale) : "";
 
   return (
-    <Card className="grid h-[calc(100dvh-9rem)] overflow-hidden md:h-[75vh] md:grid-cols-[20rem_1fr]">
+    <Card className="grid grid-cols-1 h-[calc(100dvh-9rem)] overflow-hidden md:h-[75vh] md:grid-cols-[20rem_minmax(0,1fr)]">
       <div className="hidden overflow-y-auto border-e border-slate-200 md:block"><ConversationList userId={user.id} activeId={id} /></div>
       <div className="flex min-h-0 flex-col bg-sand-50">
         <div className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3">

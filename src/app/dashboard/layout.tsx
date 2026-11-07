@@ -8,8 +8,8 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
   const profile = await getProfile();
   const { d } = await getI18n();
   return (
-    <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[14rem_1fr] lg:py-10">
-      <aside className="lg:sticky lg:top-24 lg:self-start">
+    <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[14rem_minmax(0,1fr)] lg:py-10">
+      <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
         <DashboardSidebar isAdmin={profile?.role === "admin"} />
       </aside>
       <div className="min-w-0">

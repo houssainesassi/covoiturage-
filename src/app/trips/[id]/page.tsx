@@ -94,7 +94,7 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
       <h1 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">{routeLabel(locName(origin, locale), locName(destination, locale), locale)}</h1>
       <p className="mt-1 flex items-center gap-2 text-slate-600"><CalendarDays className="size-4" aria-hidden />{formatDate(trip.departure_at, locale, "full")}</p>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_22rem]">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-6">
           <Card className="p-5 sm:p-6">
             <ol className="relative space-y-6 ps-8">
