@@ -82,6 +82,7 @@ export type Database = {
           pref_pets: boolean;
           pref_music: boolean;
           pref_chatty: boolean;
+          is_demo: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -129,6 +130,7 @@ export type Database = {
           plate_number: string | null;
           photo_paths: string[];
           is_active: boolean;
+          is_demo: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -184,6 +186,7 @@ export type Database = {
           cancelled_at: string | null;
           completed_at: string | null;
           reminder_sent_at: string | null;
+          is_demo: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -230,6 +233,7 @@ export type Database = {
           responded_at: string | null;
           cancelled_at: string | null;
           completed_at: string | null;
+          is_demo: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -301,6 +305,7 @@ export type Database = {
           rating: number;
           comment: string | null;
           is_hidden: boolean;
+          is_demo: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -463,7 +468,7 @@ export type Database = {
         Returns: {
           id: string;
           full_name: string;
-          email: string;
+          email: string | null;
           phone: string | null;
           avatar_path: string | null;
           role: Database["public"]["Enums"]["user_role"];
@@ -476,6 +481,7 @@ export type Database = {
           reports_count: number;
           created_at: string;
           last_sign_in_at: string | null;
+          is_demo: boolean;
           total_count: number;
         }[];
       };

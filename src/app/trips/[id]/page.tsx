@@ -20,6 +20,7 @@ import { BookingPanel } from "@/components/trips/booking-panel";
 import { ContactButton } from "@/components/trips/contact-button";
 import { ReportDialog } from "@/components/report/report-dialog";
 import { buttonClass } from "@/components/ui/button";
+import { DemoBadge } from "@/components/ui/badge";
 
 async function load(id: string) {
   if (!uuidSchema.safeParse(id).success) return null;
@@ -85,6 +86,11 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       <Link href="/search" className="text-sm font-medium text-slate-500 hover:text-brand-700">← {d.nav.search}</Link>
+      {trip.is_demo && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="note">
+          <DemoBadge label={d.common.demo} />{d.trip.demoNotice}
+        </div>
+      )}
       <h1 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">{routeLabel(locName(origin, locale), locName(destination, locale), locale)}</h1>
       <p className="mt-1 flex items-center gap-2 text-slate-600"><CalendarDays className="size-4" aria-hidden />{formatDate(trip.departure_at, locale, "full")}</p>
 

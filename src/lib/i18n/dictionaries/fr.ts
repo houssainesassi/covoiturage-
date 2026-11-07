@@ -54,6 +54,7 @@ const fr: Dictionary = {
     new: "Nouveau",
     required: "Obligatoire",
     or: "ou",
+    demo: "DÉMO · exemple",
   },
   units: {
     seats: { one: "{count} place", other: "{count} places" },
@@ -211,6 +212,8 @@ const fr: Dictionary = {
     recentTitle: "Trajets récemment publiés",
     recentSubtitle: "Nouveaux départs, prêts à être réservés.",
     recentEmpty: "Aucun trajet publié pour le moment. Proposez le premier !",
+    pastTitle: "Trajets récemment effectués",
+    pastSubtitle: "Aucun départ à venir pour l'instant — voici les derniers trajets réalisés.",
     howTitle: "Comment ça marche",
     how: [
       { title: "Recherchez", body: "Indiquez votre point de départ, votre destination et la date." },
@@ -282,6 +285,7 @@ const fr: Dictionary = {
     publishInstead: "Vous faites ce trajet ? Proposez-le",
     noCity: "Aucune ville correspondante",
     suggestionsTitle: "Trajets populaires",
+    pastTitle: "Trajets déjà effectués sur cet itinéraire",
     full: "Complet",
     radiusHint: "Inclut les départs dans un rayon de 20 km autour des villes choisies.",
     governorate: "Gouvernorat de {name}",
@@ -348,6 +352,7 @@ const fr: Dictionary = {
     routeApprox: "Itinéraire approximatif",
     shareTitle: "{from} → {to} le {date}",
     notFound: "Ce trajet n'existe pas ou n'est plus disponible.",
+    demoNotice: "Trajet historique fictif (données de démonstration). Ce n'est pas une offre réelle et il ne peut pas être réservé.",
   },
   dashboard: {
     welcome: "Bonjour {name}",
@@ -614,6 +619,8 @@ const fr: Dictionary = {
     report: "Signaler ce membre",
     notFound: "Ce membre n'existe pas.",
     suspended: "Ce compte est suspendu.",
+    demoNotice: "Profil fictif de démonstration. Cette personne n'existe pas.",
+    pastTrips: "Trajets passés",
   },
   settings: {
     title: "Paramètres",
@@ -735,6 +742,7 @@ const fr: Dictionary = {
     filterCity: "Filtrer par ville",
     reviewer: "Auteur",
     reviewee: "Concerne",
+    demoSummary: "Inclut des données de démo : {trips} trajets fictifs et {users} profils fictifs (exclus de la recherche).",
   },
   footer: {
     tagline: "Le covoiturage à El Fahs, Zaghouan et dans toute la Tunisie.",

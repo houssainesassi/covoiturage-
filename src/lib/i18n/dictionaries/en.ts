@@ -56,6 +56,7 @@ const en = {
     new: "New",
     required: "Required",
     or: "or",
+    demo: "DEMO · example",
   },
   units: {
     seats: p("{count} seat", "{count} seats"),
@@ -213,6 +214,8 @@ const en = {
     recentTitle: "Recently published rides",
     recentSubtitle: "Fresh departures, ready to book.",
     recentEmpty: "No rides published yet. Offer the first one!",
+    pastTitle: "Recently completed rides",
+    pastSubtitle: "No upcoming departures right now — here are the latest completed rides.",
     howTitle: "How it works",
     how: [
       { title: "Search", body: "Enter where you're leaving from, where you're going and when." },
@@ -284,6 +287,7 @@ const en = {
     publishInstead: "Driving this route? Offer a ride",
     noCity: "No matching town",
     suggestionsTitle: "Popular routes",
+    pastTitle: "Past rides on this route",
     full: "Full",
     radiusHint: "Includes pickups within 20 km of the selected towns.",
     governorate: "Governorate of {name}",
@@ -350,6 +354,7 @@ const en = {
     routeApprox: "Approximate route",
     shareTitle: "{from} → {to} on {date}",
     notFound: "This ride doesn't exist or is no longer available.",
+    demoNotice: "Fictional historical example ride (demo data). It is not a real offer and cannot be booked.",
   },
   dashboard: {
     welcome: "Hello {name}",
@@ -616,6 +621,8 @@ const en = {
     report: "Report this member",
     notFound: "This member doesn't exist.",
     suspended: "This account is suspended.",
+    demoNotice: "Fictional demo profile used for examples. This person does not exist.",
+    pastTrips: "Past rides",
   },
   settings: {
     title: "Settings",
@@ -737,6 +744,7 @@ const en = {
     filterCity: "Filter by town",
     reviewer: "Author",
     reviewee: "About",
+    demoSummary: "Includes demo data: {trips} fictional rides and {users} fictional profiles (excluded from search).",
   },
   footer: {
     tagline: "Carpooling in El Fahs, Zaghouan and all of Tunisia.",

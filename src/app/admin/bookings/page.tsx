@@ -7,7 +7,7 @@ import { locName } from "@/lib/names";
 import { routeLabel } from "@/lib/notifications";
 import type { BookingStatus } from "@/lib/supabase/database.types";
 import { PageHeader } from "@/components/ui/card";
-import { Badge, bookingTone } from "@/components/ui/badge";
+import { Badge, DemoBadge, bookingTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/form";
 import { Pagination } from "@/components/ui/misc";
@@ -24,7 +24,7 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
   const { d, locale } = await getI18n();
   const supabase = await createClient();
   const locs = await getLocationMap();
-  let q = supabase.from("bookings").select("id, status, seats, total_price, created_at, passenger:profiles!bookings_passenger_id_fkey(id, full_name), trip:trips!bookings_trip_id_fkey(id, departure_at, origin_id, destination_id, driver:profiles!trips_driver_id_fkey(id, full_name))", { count: "exact" });
+  let q = supabase.from("bookings").select("id, status, seats, total_price, created_at, is_demo, passenger:profiles!bookings_passenger_id_fkey(id, full_name), trip:trips!bookings_trip_id_fkey(id, departure_at, origin_id, destination_id, driver:profiles!trips_driver_id_fkey(id, full_name))", { count: "exact" });
   if (status) q = q.eq("status", status);
   const { data, count } = await q.order("created_at", { ascending: false }).range((page - 1) * PAGE, page * PAGE - 1);
   const totalPages = Math.ceil((count ?? 0) / PAGE);
@@ -43,7 +43,7 @@ export default async function AdminBookingsPage({ searchParams }: PageProps<"/ad
             <td className="px-4 py-3">{b.trip?.driver && <Link href={`/users/${b.trip.driver.id}`} className="hover:text-brand-700">{b.trip.driver.full_name}</Link>}</td>
             <td className="px-4 py-3">{b.seats}</td>
             <td className="px-4 py-3">{formatPrice(Number(b.total_price), locale)}</td>
-            <td className="px-4 py-3"><Badge tone={bookingTone[b.status]}>{d.status.booking[b.status]}</Badge></td>
+            <td className="px-4 py-3"><div className="flex flex-wrap gap-1"><Badge tone={bookingTone[b.status]}>{d.status.booking[b.status]}</Badge>{b.is_demo && <DemoBadge label={d.common.demo} />}</div></td>
             <td className="px-4 py-3">{(b.status === "pending" || b.status === "confirmed") && <CancelBookingButton id={b.id} />}</td>
           </tr>
         ))}

@@ -6,7 +6,7 @@ import { fmt, formatDate } from "@/lib/i18n/format";
 import { formatTunisianPhone } from "@/lib/phone";
 import { PageHeader } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { Badge, DemoBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/form";
 import { Pagination } from "@/components/ui/misc";
@@ -43,7 +43,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
             <td className="px-4 py-3">
               <Link href={`/users/${u.id}`} className="flex items-center gap-3">
                 <Avatar path={u.avatar_path} name={u.full_name} size="sm" />
-                <span className="min-w-0"><span className="block font-semibold">{u.full_name || "—"}</span><span className="block text-xs text-slate-500" dir="ltr">{u.email}</span></span>
+                <span className="min-w-0"><span className="block font-semibold">{u.full_name || "—"}</span><span className="block text-xs text-slate-500" dir="ltr">{u.email ?? "—"}</span></span>
               </Link>
             </td>
             <td className="px-4 py-3 text-slate-600" dir="ltr">{formatTunisianPhone(u.phone) || "—"}</td>
@@ -51,12 +51,13 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
               <div className="flex flex-wrap gap-1">
                 <Badge tone={u.status === "active" ? "success" : "danger"}>{u.status === "active" ? d.admin.active : d.admin.suspended}</Badge>
                 {u.role === "admin" && <Badge tone="info">{d.admin.roleAdmin}</Badge>}
+                {u.is_demo && <DemoBadge label={d.common.demo} />}
               </div>
               {u.suspended_reason && <p className="mt-1 text-xs text-slate-500">{u.suspended_reason}</p>}
             </td>
             <td className="px-4 py-3 text-xs text-slate-600">{d.admin.trips}: {u.trips_count} · {d.admin.bookings}: {u.bookings_count}<br />{d.admin.reports}: {u.reports_count} · ★ {Number(u.rating_avg).toFixed(1)}</td>
             <td className="px-4 py-3 text-xs text-slate-500">{formatDate(u.created_at, locale, "short")}{u.last_sign_in_at && <><br />{d.admin.lastSignIn}: {formatDate(u.last_sign_in_at, locale, "short")}</>}</td>
-            <td className="px-4 py-3"><UserActions id={u.id} name={u.full_name} status={u.status} role={u.role} self={u.id === me?.id} /></td>
+            <td className="px-4 py-3">{!u.is_demo && <UserActions id={u.id} name={u.full_name} status={u.status} role={u.role} self={u.id === me?.id} />}</td>
           </tr>
         ))}
       </Table>

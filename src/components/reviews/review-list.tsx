@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Avatar } from "@/components/ui/avatar";
 import { Stars } from "@/components/ui/misc";
+import { DemoBadge } from "@/components/ui/badge";
 import type { Dictionary } from "@/lib/i18n/dictionaries/en";
 import type { Locale } from "@/lib/i18n/config";
 import { formatDate } from "@/lib/i18n/format";
@@ -12,6 +13,7 @@ export type ReviewItem = {
   created_at: string;
   reviewee_role: string;
   is_hidden: boolean;
+  is_demo?: boolean;
   person: { id: string; full_name: string; avatar_path: string | null } | null;
 };
 
@@ -27,6 +29,7 @@ export function ReviewList({ reviews, d, locale, empty }: { reviews: ReviewItem[
               {r.person ? <Link href={`/users/${r.person.id}`} className="text-sm font-semibold hover:text-brand-700">{r.person.full_name}</Link> : null}
               <Stars value={r.rating} />
               <span className="text-xs text-slate-400">{formatDate(r.created_at, locale, "short")} · {r.reviewee_role === "driver" ? d.reviews.asDriver : d.reviews.asPassenger}</span>
+              {r.is_demo && <DemoBadge label={d.common.demo} />}
             </div>
             {r.is_hidden ? <p className="mt-1 text-sm italic text-slate-400">{d.reviews.hidden}</p> : r.comment && <p className="mt-1 text-sm text-slate-700">{r.comment}</p>}
           </div>

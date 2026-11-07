@@ -1,9 +1,10 @@
 import { Ban, CalendarCheck, Car, CheckCircle2, Flag, MessageCircle, UserPlus, Users, Wallet, XCircle, Clock, Route } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
-import { formatDateTime, formatNumber, formatPrice } from "@/lib/i18n/format";
+import { fmt, formatDateTime, formatNumber, formatPrice } from "@/lib/i18n/format";
 import { Card, CardHeader, PageHeader } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/misc";
+import { DemoBadge } from "@/components/ui/badge";
 
 type Stats = Record<string, number> & { daily: { day: string; signups: number; trips: number; bookings: number }[] };
 
@@ -25,6 +26,11 @@ export default async function AdminPage() {
   return (
     <div className="space-y-6">
       <PageHeader title={d.admin.title} />
+      {Number(s.demo_trips ?? 0) > 0 && (
+        <p className="flex flex-wrap items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <DemoBadge label={d.common.demo} />{fmt(d.admin.demoSummary, { trips: n("demo_trips"), users: n("demo_users") })}
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label={d.admin.stats.users} value={n("users_total")} icon={<Users className="size-5" />} />
         <StatCard label={d.admin.stats.newUsers} value={n("users_new_7d")} icon={<UserPlus className="size-5" />} tone="accent" />

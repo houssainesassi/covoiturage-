@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { normalizeTunisianPhone } from "./phone";
 
-const uuid = z.string().uuid();
+// z.guid(): any 8-4-4-4-12 hex id. z.uuid() enforces RFC version bits and rejects md5()::uuid ids (demo data).
+const uuid = z.guid();
 const trimmed = (max: number) => z.string().trim().max(max);
 const optionalText = (max: number) =>
   z.string().trim().max(max).optional().transform((v) => (v ? v : null));

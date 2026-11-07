@@ -540,7 +540,47 @@ async function run(pool: Pool) {
   ok("user cannot upload into another user's folder", /row-level security/.test(e), e);
   const bucket = (await pool.query("select file_size_limit, allowed_mime_types from storage.buckets where id='avatars'")).rows[0];
   ok("avatar bucket restricts size & type", bucket.file_size_limit === "2097152" && bucket.allowed_mime_types.includes("image/webp"), bucket);
+  // -------------------------------------------------------------------------
+  console.log("\nHistorical demo data");
+  const seed = readFileSync(path.join(root, "supabase/seed/demo_history.sql"), "utf8");
+  const realTrips = (await pool.query("select count(*)::int n from public.trips where not is_demo")).rows[0].n;
+  await pool.query(seed);
+  const c1 = (await pool.query("select (select count(*) from public.trips where is_demo)::int t, (select count(*) from public.bookings where is_demo)::int b, (select count(*) from public.reviews where is_demo)::int r, (select count(*) from public.profiles where is_demo)::int p")).rows[0];
+  ok("seed creates 50–100 demo trips", c1.t >= 50 && c1.t <= 100, c1);
+  ok("seed creates bookings and reviews", c1.b > 50 && c1.r > 30, c1);
+  await pool.query(seed);
+  const c2 = (await pool.query("select (select count(*) from public.trips where is_demo)::int t, (select count(*) from public.bookings where is_demo)::int b, (select count(*) from public.reviews where is_demo)::int r")).rows[0];
+  ok("seed is idempotent (re-run adds nothing)", c2.t === c1.t && c2.b === c1.b && c2.r === c1.r, { c1, c2 });
+  ok("all demo trips are in the past", (await pool.query("select count(*)::int n from public.trips where is_demo and departure_at >= now()")).rows[0].n === 0);
+  ok("no demo trip is scheduled", (await pool.query("select count(*)::int n from public.trips where is_demo and status = 'scheduled'")).rows[0].n === 0);
+  ok("demo profiles have no auth account", (await pool.query("select count(*)::int n from public.profiles p join auth.users u on u.id = p.id where p.is_demo")).rows[0].n === 0);
+  ok("demo profiles have no phone numbers", (await pool.query("select count(*)::int n from public.profile_private pp join public.profiles p on p.id = pp.id where p.is_demo")).rows[0].n === 0);
+  ok("demo trips only use demo people", (await pool.query("select count(*)::int n from public.bookings b join public.profiles p on p.id = b.passenger_id where b.is_demo and not p.is_demo")).rows[0].n === 0);
+  ok("seat accounting consistent", (await pool.query("select count(*)::int n from public.trips t where is_demo and status = 'completed' and seats_available <> seats_total - coalesce((select sum(seats) from public.bookings b where b.trip_id = t.id and b.status = 'completed'),0)")).rows[0].n === 0);
+  ok("demo driver ratings computed", (await pool.query("select count(*)::int n from public.profiles where is_demo and rating_count > 0")).rows[0].n > 5);
+  const demoSearch = await as(pool, "anon", (c) => c.query("select count(*)::int n from public.search_trips(null, null, null, 1, null, null, null, null, 'departure', 50, 0) s join public.trips t on t.id = s.id where t.is_demo"));
+  ok("demo trips never appear in search", demoSearch.rows[0].n === 0);
+  const demoTrip = (await pool.query("select id from public.trips where is_demo and status = 'completed' limit 1")).rows[0].id;
+  e = await fails(book(pool, p1, demoTrip, 1));
+  ok("demo trips cannot be booked", /trip_not_bookable/.test(e), e);
+  e = await fails(as(pool, p1, (c) => c.query("update public.profiles set is_demo = true where id = $1", [p1])));
+  ok("users cannot flag themselves as demo", /permission denied/.test(e), e);
+  e = await fails(as(pool, driver, (c) => c.query("insert into public.trips (driver_id, origin_id, destination_id, origin_address, destination_address, origin_lat, origin_lng, destination_lat, destination_lng, departure_at, seats_total, price_per_seat, is_demo) values ($1,$2,$3,'a','b',36.8,10.1,36.4,9.9, now() - interval '1 day', 3, 5, true)", [driver, tunis.id, elFahs.id])));
+  ok("users cannot create demo trips", /permission denied/.test(e), e);
+  e = await fails(pool.query("insert into public.profiles (id, full_name) values (gen_random_uuid(), 'ghost')"));
+  ok("real profiles still require an auth user", /profile_requires_auth_user/.test(e), e);
+  const demoDriver = (await pool.query("select id from public.profiles where is_demo limit 1")).rows[0].id;
+  e = await fails(pool.query("insert into public.trips (driver_id, origin_id, destination_id, origin_address, destination_address, origin_lat, origin_lng, destination_lat, destination_lng, departure_at, seats_total, seats_available, price_per_seat, status, is_demo) values ($1,$2,$3,'a','b',36.8,10.1,36.4,9.9, now() + interval '2 days', 3, 3, 5, 'completed', true)", [demoDriver, tunis.id, elFahs.id]));
+  ok("demo trips cannot be in the future", /demo_must_be_past/.test(e), e);
+  const adminUsers = await as(pool, admin, (c) => c.query("select count(*)::int n from public.admin_list_users(null, null, null, 100, 0) where is_demo"));
+  ok("admin sees demo profiles flagged", adminUsers.rows[0].n > 0);
+  await pool.query("delete from auth.users where id = $1", [badPhone]);
+  ok("deleting an auth user still removes the profile", (await pool.query("select count(*)::int n from public.profiles where id = $1", [badPhone])).rows[0].n === 0);
+  await pool.query(readFileSync(path.join(root, "supabase/seed/demo_cleanup.sql"), "utf8"));
+  ok("cleanup removes all demo data", (await pool.query("select (select count(*) from public.trips where is_demo) + (select count(*) from public.profiles where is_demo) n")).rows[0].n === "0");
+  ok("cleanup leaves real trips untouched", (await pool.query("select count(*)::int n from public.trips where not is_demo")).rows[0].n === realTrips);
 }
+
 
 main().catch((err) => {
   console.error(err);

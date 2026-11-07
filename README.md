@@ -20,6 +20,7 @@ Supabase (Postgres, Auth, Storage, Realtime) · Tailwind CSS 4 · Leaflet + Open
 - Reviews (both directions, completed trips only, one per trip/person).
 - Reports & moderation; admin dashboard (stats, users suspend/activate/roles, trips, bookings,
   reports, review/message hiding, audit log). Admin rights are checked inside Postgres.
+- Optional fictional historical demo data, clearly labelled and isolated from real listings.
 - Reminders 24 h before departure and auto-completion of past trips (pg_cron or `/api/cron`).
 
 ## Setup
@@ -38,6 +39,17 @@ Supabase (Postgres, Auth, Storage, Realtime) · Tailwind CSS 4 · Leaflet + Open
   and `SUPABASE_SECRET_KEY` so Vercel Cron calls `/api/cron`.
 - **Create the first admin** (SQL Editor): `update public.profiles set role = 'admin' where id = '<user uuid>';`
 
+## Historical demo data (optional, for testing)
+`supabase/seed/demo_history.sql` adds ~80 fictional **past** rides (Tunis ↔ El Fahs, Zaghouan, Nabeul,
+Hammamet, Sousse, Sfax, Kairouan, Bizerte, Monastir; Zaghouan ↔ El Fahs; El Fahs ↔ Sousse; Nabeul ↔ Sousse)
+with bookings and reviews from the last ~6 months.
+- Every row has `is_demo = true`; demo profiles have **no auth account and no phone number** and cannot sign in.
+- Demo rides are `completed`/`cancelled` and in the past: never searchable, never bookable (enforced in Postgres).
+- Shown with a **DEMO · example** badge on ride pages, profiles, reviews and admin tables.
+- Re-running the seed inserts nothing new (deterministic ids). Remove it all with `supabase/seed/demo_cleanup.sql`.
+
+Run in the SQL Editor **after** migration 7: paste `demo_history.sql`, execute.
+
 ## Deploy (Vercel)
 Import the repository, add the environment variables from `.env.example`, deploy.
 `vercel.json` schedules `/api/cron` daily (Hobby limit); pg_cron runs every 15–30 min if enabled.
@@ -47,7 +59,7 @@ Import the repository, add the environment variables from `.env.example`, deploy
 | --- | --- |
 | `npm run typecheck` | TypeScript strict |
 | `npm run lint` | ESLint (Next + React Compiler rules) |
-| `npm run test:db` | 132 DB integration tests on a real embedded Postgres: booking rules, 20 concurrent bookings for 3 seats, cancellations, RLS/privileges, messaging, reviews, admin, jobs |
+| `npm run test:db` | 152 DB integration tests on a real embedded Postgres: booking rules, 20 concurrent bookings for 3 seats, cancellations, RLS/privileges, messaging, reviews, admin, jobs |
 | `npm run build` | Production build |
 | `BASE_URL=http://127.0.0.1:3000 CHROME_PATH=<chromium> npx tsx scripts/e2e/smoke.ts` | Browser checks: search, filters, auth guards, form errors, RTL, mobile layout |
 

@@ -24,10 +24,16 @@ export default async function HomePage() {
   const home = locations.find((l) => l.slug === site.homeCitySlug) ?? locations[0];
   const now = new Date().toISOString();
 
-  const [{ data: upcoming }, { data: recent }] = await Promise.all([
+  const [{ data: upcoming, error: upcomingError }, { data: recent, error: recentError }] = await Promise.all([
     supabase.from("trips").select("origin_id, destination_id, price_per_seat").eq("status", "scheduled").gt("departure_at", now).gt("seats_available", 0).limit(2000),
     supabase.from("trips").select(TRIP_CARD_SELECT).eq("status", "scheduled").gt("departure_at", now).gt("seats_available", 0).order("created_at", { ascending: false }).limit(6),
   ]);
+  const loadError = Boolean(upcomingError || recentError);
+  // No upcoming departures: show the latest completed public trips so visitors still see real activity.
+  const { data: past } = !loadError && (recent ?? []).length === 0
+    ? await supabase.from("trips").select(TRIP_CARD_SELECT).eq("status", "completed").order("departure_at", { ascending: false }).limit(6)
+    : { data: null };
+  const showPast = (past ?? []).length > 0;
 
   const routeStats = new Map<string, { count: number; min: number }>();
   const destStats = new Map<string, number>();
@@ -92,15 +98,16 @@ export default async function HomePage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{d.home.recentTitle}</h2>
-              <p className="mt-1 text-slate-500">{d.home.recentSubtitle}</p>
+              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{showPast ? d.home.pastTitle : d.home.recentTitle}</h2>
+              <p className="mt-1 text-slate-500">{showPast ? d.home.pastSubtitle : d.home.recentSubtitle}</p>
             </div>
             <Link href="/search" className="text-sm font-semibold text-brand-700 hover:underline">{d.common.seeAll}</Link>
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {(recent ?? []).map((t) => <TripCard key={t.id} trip={toCard(t)} locations={byId} d={d} locale={locale} />)}
+            {(showPast ? past! : recent ?? []).map((t) => <TripCard key={t.id} trip={toCard(t)} locations={byId} d={d} locale={locale} />)}
           </div>
-          {(recent ?? []).length === 0 && (
+          {loadError && <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{d.errors.unknown}</p>}
+          {!loadError && !showPast && (recent ?? []).length === 0 && (
             <EmptyState icon={<Car className="size-6" />} title={d.home.recentEmpty} action={<ButtonLink href="/dashboard/trips/new">{d.home.ctaPublish}</ButtonLink>} />
           )}
         </div>

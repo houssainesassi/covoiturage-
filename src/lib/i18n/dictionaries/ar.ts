@@ -54,6 +54,7 @@ const ar: Dictionary = {
     new: "جديد",
     required: "إجباري",
     or: "أو",
+    demo: "تجريبي · مثال",
   },
   units: {
     seats: { zero: "{count} مقعد", one: "مقعد واحد", two: "مقعدان", few: "{count} مقاعد", many: "{count} مقعدًا", other: "{count} مقعد" },
@@ -209,6 +210,8 @@ const ar: Dictionary = {
     recentTitle: "رحلات نُشرت مؤخرًا",
     recentSubtitle: "انطلاقات جديدة جاهزة للحجز.",
     recentEmpty: "لا توجد رحلات منشورة بعد. اقترح أول رحلة!",
+    pastTitle: "رحلات أُنجزت مؤخرًا",
+    pastSubtitle: "لا توجد انطلاقات قادمة حاليًا — إليك آخر الرحلات المنجزة على المنصة.",
     howTitle: "كيف يعمل",
     how: [
       { title: "ابحث", body: "أدخل مكان الانطلاق والوجهة والتاريخ." },
@@ -280,6 +283,7 @@ const ar: Dictionary = {
     publishInstead: "تسافر في هذا الطريق؟ اقترح رحلة",
     noCity: "لا توجد مدينة مطابقة",
     suggestionsTitle: "طرقات رائجة",
+    pastTitle: "رحلات سابقة على هذا الطريق",
     full: "ممتلئة",
     radiusHint: "يشمل نقاط الانطلاق في حدود 20 كم من المدن المختارة.",
     governorate: "ولاية {name}",
@@ -346,6 +350,7 @@ const ar: Dictionary = {
     routeApprox: "مسار تقريبي",
     shareTitle: "{from} ← {to} يوم {date}",
     notFound: "هذه الرحلة غير موجودة أو لم تعد متاحة.",
+    demoNotice: "رحلة سابقة وهمية (بيانات تجريبية). ليست عرضًا حقيقيًا ولا يمكن حجزها.",
   },
   dashboard: {
     welcome: "مرحبًا {name}",
@@ -612,6 +617,8 @@ const ar: Dictionary = {
     report: "الإبلاغ عن هذا العضو",
     notFound: "هذا العضو غير موجود.",
     suspended: "هذا الحساب موقوف.",
+    demoNotice: "ملف تجريبي وهمي يُستعمل كمثال. هذا الشخص غير موجود.",
+    pastTrips: "رحلات سابقة",
   },
   settings: {
     title: "الإعدادات",
@@ -733,6 +740,7 @@ const ar: Dictionary = {
     filterCity: "تصفية حسب المدينة",
     reviewer: "الكاتب",
     reviewee: "المعني",
+    demoSummary: "تتضمن بيانات تجريبية: {trips} رحلة وهمية و{users} ملفًا وهميًا (مستبعدة من البحث).",
   },
   footer: {
     tagline: "تقاسم الرحلات في الفحص وزغوان وكامل تونس.",

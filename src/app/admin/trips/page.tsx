@@ -6,7 +6,7 @@ import { fmt, formatDateTime, formatPrice } from "@/lib/i18n/format";
 import { locName } from "@/lib/names";
 import { routeLabel } from "@/lib/notifications";
 import { PageHeader } from "@/components/ui/card";
-import { Badge, tripTone } from "@/components/ui/badge";
+import { Badge, DemoBadge, tripTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/form";
 import { Pagination } from "@/components/ui/misc";
@@ -25,7 +25,7 @@ export default async function AdminTripsPage({ searchParams }: PageProps<"/admin
   const locations = await getLocations();
   const locs = new Map(locations.map((l) => [l.id, l]));
   const cityLoc = locations.find((l) => l.slug === city);
-  let q = supabase.from("trips").select("id, departure_at, origin_id, destination_id, seats_total, seats_available, price_per_seat, status, driver:profiles!trips_driver_id_fkey(id, full_name)", { count: "exact" });
+  let q = supabase.from("trips").select("id, departure_at, origin_id, destination_id, seats_total, seats_available, price_per_seat, status, is_demo, driver:profiles!trips_driver_id_fkey(id, full_name)", { count: "exact" });
   if (status) q = q.eq("status", status);
   if (cityLoc) q = q.or(`origin_id.eq.${cityLoc.id},destination_id.eq.${cityLoc.id}`);
   const { data, count } = await q.order("departure_at", { ascending: false }).range((page - 1) * PAGE, page * PAGE - 1);
@@ -49,7 +49,7 @@ export default async function AdminTripsPage({ searchParams }: PageProps<"/admin
               <td className="px-4 py-3">{t.driver && <Link href={`/users/${t.driver.id}`} className="hover:text-brand-700">{t.driver.full_name}</Link>}</td>
               <td className="px-4 py-3">{t.seats_total - t.seats_available}/{t.seats_total}</td>
               <td className="px-4 py-3">{formatPrice(Number(t.price_per_seat), locale)}</td>
-              <td className="px-4 py-3"><Badge tone={tripTone[key]}>{d.status.trip[key]}</Badge></td>
+              <td className="px-4 py-3"><div className="flex flex-wrap gap-1"><Badge tone={tripTone[key]}>{d.status.trip[key]}</Badge>{t.is_demo && <DemoBadge label={d.common.demo} />}</div></td>
               <td className="px-4 py-3">{t.status === "scheduled" && <CancelTripButton id={t.id} />}</td>
             </tr>
           );

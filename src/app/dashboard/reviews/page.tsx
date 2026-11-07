@@ -24,7 +24,7 @@ export default async function ReviewsPage({ searchParams }: PageProps<"/dashboar
   let list = null;
   if (tab !== "write") {
     const { data } = tab === "received"
-      ? await supabase.from("reviews").select("id, rating, comment, created_at, reviewee_role, is_hidden, person:profiles!reviews_reviewer_id_fkey(id, full_name, avatar_path)").eq("reviewee_id", user.id).order("created_at", { ascending: false }).limit(100)
+      ? await supabase.from("reviews").select("id, rating, comment, created_at, reviewee_role, is_hidden, is_demo, person:profiles!reviews_reviewer_id_fkey(id, full_name, avatar_path)").eq("reviewee_id", user.id).order("created_at", { ascending: false }).limit(100)
       : await supabase.from("reviews").select("id, rating, comment, created_at, reviewee_role, is_hidden, person:profiles!reviews_reviewee_id_fkey(id, full_name, avatar_path)").eq("reviewer_id", user.id).order("created_at", { ascending: false }).limit(100);
     list = data ?? [];
   }

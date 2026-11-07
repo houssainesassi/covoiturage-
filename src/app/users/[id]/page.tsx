@@ -11,7 +11,7 @@ import { TRIP_CARD_SELECT, toCard } from "@/lib/queries";
 import { uuidSchema } from "@/lib/validation";
 import { Avatar } from "@/components/ui/avatar";
 import { Card, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Badge, DemoBadge } from "@/components/ui/badge";
 import { StatCard, Stars } from "@/components/ui/misc";
 import { TripCard } from "@/components/trips/trip-card";
 import { ReviewList } from "@/components/reviews/review-list";
@@ -38,9 +38,10 @@ export default async function UserPage({ params }: PageProps<"/users/[id]">) {
   const locs = await getLocationMap();
   const viewer = await getUser();
   const [{ data: reviews }, { data: trips }] = await Promise.all([
-    supabase.from("reviews").select("id, rating, comment, created_at, reviewee_role, is_hidden, person:profiles!reviews_reviewer_id_fkey(id, full_name, avatar_path)").eq("reviewee_id", id).eq("is_hidden", false).order("created_at", { ascending: false }).limit(30),
+    supabase.from("reviews").select("id, rating, comment, created_at, reviewee_role, is_hidden, is_demo, person:profiles!reviews_reviewer_id_fkey(id, full_name, avatar_path)").eq("reviewee_id", id).eq("is_hidden", false).order("created_at", { ascending: false }).limit(30),
     supabase.from("trips").select(TRIP_CARD_SELECT).eq("driver_id", id).eq("status", "scheduled").gt("departure_at", new Date().toISOString()).order("departure_at").limit(6),
   ]);
+  const { data: past } = await supabase.from("trips").select(TRIP_CARD_SELECT).eq("driver_id", id).eq("status", "completed").order("departure_at", { ascending: false }).limit(4);
   const city = profile.city_id ? locs.get(profile.city_id) : null;
 
   return (
@@ -56,6 +57,7 @@ export default async function UserPage({ params }: PageProps<"/users/[id]">) {
               <span>{fmt(d.common.memberSince, { date: formatDate(profile.created_at, locale, "short") })}</span>
             </p>
             {profile.status === "suspended" && <Badge tone="danger" className="mt-2">{d.profile.suspended}</Badge>}
+            {profile.is_demo && <p className="mt-2 flex flex-wrap items-center justify-center gap-2 text-sm text-amber-800 sm:justify-start"><DemoBadge label={d.common.demo} />{d.profile.demoNotice}</p>}
             {profile.bio && <p className="mt-3 max-w-2xl text-slate-700">{profile.bio}</p>}
           </div>
           {viewer && viewer.id !== profile.id && <ReportDialog userId={profile.id} name={profile.full_name} />}
@@ -72,6 +74,12 @@ export default async function UserPage({ params }: PageProps<"/users/[id]">) {
           <div className="grid gap-4 md:grid-cols-2">{trips!.map((t) => <TripCard key={t.id} trip={toCard(t)} locations={locs} d={d} locale={locale} />)}</div>
         ) : <p className="text-sm text-slate-500">{d.profile.noTrips}</p>}
       </section>
+      {(past ?? []).length > 0 && (
+        <section className="mt-8">
+          <h2 className="mb-3 text-lg font-semibold">{d.profile.pastTrips}</h2>
+          <div className="grid gap-4 md:grid-cols-2">{past!.map((t) => <TripCard key={t.id} trip={toCard(t)} locations={locs} d={d} locale={locale} />)}</div>
+        </section>
+      )}
       <Card className="mt-8">
         <CardHeader title={d.profile.reviewsTitle} />
         <div className="px-5 sm:px-6"><ReviewList reviews={reviews ?? []} d={d} locale={locale} empty={d.profile.noReviews} /></div>

@@ -27,3 +27,8 @@ export const bookingTone: Record<string, Tone> = {
   completed: "info",
 };
 export const tripTone: Record<string, Tone> = { scheduled: "brand", cancelled: "danger", completed: "info", departed: "neutral" };
+
+/** Marks fictional demo/example records wherever they are displayed. */
+export function DemoBadge({ label, className }: { label: string; className?: string }) {
+  return <Badge tone="warning" className={cn("uppercase tracking-wide", className)}>{label}</Badge>;
+}

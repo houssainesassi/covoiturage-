@@ -11,6 +11,7 @@ import { routeLabel } from "@/lib/notifications";
 import { SearchForm } from "@/components/search/search-form";
 import { SearchFilters } from "@/components/search/filters";
 import { TripCard } from "@/components/trips/trip-card";
+import { TRIP_CARD_SELECT, toCard } from "@/lib/queries";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState, Pagination } from "@/components/ui/misc";
 
@@ -60,6 +61,18 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
   const rows = data ?? [];
   const total = Number(rows[0]?.total_count ?? 0);
   const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  // Nothing bookable matches: show completed public trips on the same route so visitors see real activity.
+  let past: ReturnType<typeof toCard>[] = [];
+  if (!error && rows.length === 0) {
+    let q = supabase.from("trips").select(TRIP_CARD_SELECT).eq("status", "completed");
+    if (from) q = q.eq("origin_id", from.id);
+    if (to) q = q.eq("destination_id", to.id);
+    if (maxPrice) q = q.lte("price_per_seat", maxPrice);
+    if (date) q = q.gte("departure_at", `${date}T00:00:00+01:00`).lt("departure_at", `${date}T23:59:59+01:00`);
+    const { data: pastRows } = await q.order("departure_at", { ascending: false }).limit(6);
+    past = (pastRows ?? []).map(toCard);
+  }
 
   const qs = (patch: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
@@ -116,6 +129,14 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
                   </>
                 }
               />
+              {past.length > 0 && (
+                <div>
+                  <h2 className="mb-3 font-semibold">{from || to ? d.search.pastTitle : d.home.pastTitle}</h2>
+                  <div className="grid gap-4 xl:grid-cols-2">
+                    {past.map((t) => <TripCard key={t.id} trip={t} locations={byId} d={d} locale={locale} />)}
+                  </div>
+                </div>
+              )}
               <div>
                 <h2 className="mb-3 font-semibold">{d.search.suggestionsTitle}</h2>
                 <div className="flex flex-wrap gap-2">

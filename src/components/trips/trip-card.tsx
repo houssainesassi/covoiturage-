@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Car, Star } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { Badge, DemoBadge } from "@/components/ui/badge";
 import type { Dictionary } from "@/lib/i18n/dictionaries/en";
 import type { Locale } from "@/lib/i18n/config";
 import { formatDate, formatDuration, formatPrice, formatTime, plural } from "@/lib/i18n/format";
@@ -23,6 +23,8 @@ export type TripCardData = {
   driver_rating: number;
   driver_rating_count: number;
   vehicle: string | null;
+  isDemo?: boolean;
+  status?: "scheduled" | "cancelled" | "completed";
 };
 
 export function TripCard({ trip, locations, d, locale, showDate = true }: { trip: TripCardData; locations: Map<string, Location>; d: Dictionary; locale: Locale; showDate?: boolean }) {
@@ -32,7 +34,12 @@ export function TripCard({ trip, locations, d, locale, showDate = true }: { trip
   const full = trip.seats_available <= 0;
   return (
     <Link href={`/trips/${trip.id}`} className="group block rounded-[var(--radius-card)] border border-slate-200/80 bg-white p-4 shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-lift)] sm:p-5">
-      {showDate && <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-700">{formatDate(trip.departure_at, locale)}</p>}
+      {(showDate || trip.isDemo) && (
+        <div className="mb-3 flex items-center justify-between gap-2">
+          {showDate && <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">{formatDate(trip.departure_at, locale)}</p>}
+          {trip.isDemo && <DemoBadge label={d.common.demo} />}
+        </div>
+      )}
       <div className="flex gap-4">
         <div className="flex flex-col items-center pt-1" aria-hidden>
           <span className="size-3 rounded-full border-[3px] border-brand-600" />
@@ -53,7 +60,7 @@ export function TripCard({ trip, locations, d, locale, showDate = true }: { trip
         <div className="text-end">
           <p className="text-xl font-extrabold text-slate-900">{formatPrice(trip.price_per_seat, locale)}</p>
           <p className="text-xs text-slate-500">{d.common.perSeat}</p>
-          <div className="mt-2">{full ? <Badge tone="danger">{d.search.full}</Badge> : <Badge tone="brand">{plural(d.units.seatsLeft, trip.seats_available, locale)}</Badge>}</div>
+          <div className="mt-2">{trip.status === "completed" ? <Badge>{d.status.trip.completed}</Badge> : full ? <Badge tone="danger">{d.search.full}</Badge> : <Badge tone="brand">{plural(d.units.seatsLeft, trip.seats_available, locale)}</Badge>}</div>
         </div>
       </div>
       <div className="mt-4 flex items-center gap-3 border-t border-slate-100 pt-4">
