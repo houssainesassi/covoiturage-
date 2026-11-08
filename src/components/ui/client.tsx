@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, useTransition, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -58,6 +58,7 @@ export function ConfirmAction({
   title,
   body,
   confirmLabel,
+  cancelLabel,
   successMessage,
   variant = "outline",
   confirmVariant = "danger",
@@ -73,12 +74,13 @@ export function ConfirmAction({
   title?: ReactNode;
   body?: ReactNode;
   confirmLabel?: ReactNode;
+  cancelLabel?: ReactNode;
   successMessage?: string | ((r: ActionResult<unknown>) => string);
   variant?: Variant;
   confirmVariant?: Variant;
   withReason?: boolean;
   skipConfirm?: boolean;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   icon?: ReactNode;
   className?: string;
   onDone?: () => void;
@@ -88,6 +90,7 @@ export function ConfirmAction({
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [pending, start] = useTransition();
+  const reasonId = useId();
 
   const run = () =>
     start(async () => {
@@ -115,13 +118,13 @@ export function ConfirmAction({
           {body && <p className="text-sm text-slate-600">{body}</p>}
           {withReason && (
             <div className="mt-4">
-              <Label htmlFor="confirm-reason">{d.bookings.reasonLabel}</Label>
-              <Textarea id="confirm-reason" value={reason} maxLength={500} onChange={(e) => setReason(e.target.value)} placeholder={d.bookings.reasonPlaceholder} />
+              <Label htmlFor={reasonId}>{d.bookings.reasonLabel}</Label>
+              <Textarea id={reasonId} dir="auto" value={reason} maxLength={500} onChange={(e) => setReason(e.target.value)} placeholder={d.bookings.reasonPlaceholder} />
             </div>
           )}
           <div className="mt-5 flex flex-wrap justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-              {d.common.cancel}
+              {cancelLabel ?? d.common.cancel}
             </Button>
             <Button type="button" variant={confirmVariant} loading={pending} onClick={run}>
               {confirmLabel ?? d.common.confirm}

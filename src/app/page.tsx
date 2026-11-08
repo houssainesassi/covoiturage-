@@ -13,6 +13,7 @@ import { SearchForm } from "@/components/search/search-form";
 import { TripCard } from "@/components/trips/trip-card";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/misc";
+import type { Location } from "@/lib/supabase/database.types";
 
 const REGION_DESTINATIONS = ["tunis", "zaghouan", "ben-arous", "sousse", "kairouan", "siliana", "nabeul", "sfax"];
 
@@ -29,12 +30,12 @@ export default async function HomePage() {
     supabase.from("trips").select(TRIP_CARD_SELECT).eq("status", "scheduled").gt("departure_at", now).gt("seats_available", 0).order("created_at", { ascending: false }).limit(6),
   ]);
   const loadError = Boolean(upcomingError || recentError);
-  // No upcoming departures: show the latest completed public trips so visitors still see real activity.
+  // No active offers: completed public trips appear further down, clearly labelled, so visitors still see real activity.
   const { data: past } = !loadError && (recent ?? []).length === 0
     ? await supabase.from("trips").select(TRIP_CARD_SELECT).eq("status", "completed").order("departure_at", { ascending: false }).limit(6)
     : { data: null };
-  const showPast = (past ?? []).length > 0;
-  const cards = await withDriverPhones(supabase, (showPast ? past! : recent ?? []).map(toCard));
+  const offers = await withDriverPhones(supabase, (recent ?? []).map(toCard));
+  const pastCards = await withDriverPhones(supabase, (past ?? []).map(toCard));
 
   const routeStats = new Map<string, { count: number; min: number }>();
   const destStats = new Map<string, number>();
@@ -47,19 +48,111 @@ export default async function HomePage() {
       routeStats.set(t.destination_id, s);
     }
   }
-  const regionRoutes = REGION_DESTINATIONS.map((slug) => locations.find((l) => l.slug === slug)).filter((l) => l && l.id !== home?.id).slice(0, 6);
+  // Routes with the most live rides first, then the usual destinations from El Fahs.
+  const offered = [...routeStats].sort(([, a], [, b]) => b.count - a.count).map(([id]) => byId.get(id));
+  const usual = REGION_DESTINATIONS.map((slug) => locations.find((l) => l.slug === slug));
+  const regionRoutes = [...new Set([...offered, ...usual])].filter((l): l is Location => !!l && l.id !== home?.id).slice(0, 6);
   const popular = locations.filter((l) => l.kind === "city" && l.is_capital && l.id !== home?.id).slice(0, 8);
   const delegations = locations.filter((l) => l.governorate_code === site.homeGovernorate);
   const lite = locations.map(toLite);
 
   return (
     <>
+      {/* Newest offers: the first thing visitors see */}
+      <section className="mx-auto max-w-7xl px-4 pb-8 pt-5 sm:px-6 sm:py-10">
+        <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{d.home.recentTitle}</h1>
+            <p className="mt-1 text-slate-500">{d.home.recentSubtitle}</p>
+          </div>
+          <Link href="/search" className="text-sm font-semibold text-brand-700 hover:underline">{d.common.seeAll}</Link>
+        </div>
+        {loadError ? (
+          <p role="alert" className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{d.errors.unknown}</p>
+        ) : offers.length > 0 ? (
+          <>
+            {/* Three cards on phones, so the routes below stay within easy reach. */}
+            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 max-md:[&>*:nth-child(n+4)]:hidden">
+              {offers.map((t) => <TripCard key={t.id} trip={t} locations={byId} d={d} locale={locale} />)}
+            </div>
+            {offers.length > 3 && <ButtonLink href="/search" variant="outline" className="mt-4 w-full md:hidden">{d.common.seeAll}</ButtonLink>}
+          </>
+        ) : (
+          <div className="mt-5">
+            <EmptyState icon={<Car className="size-6" />} title={d.home.recentEmpty} action={<ButtonLink href="/dashboard/trips/new">{d.home.ctaPublish}</ButtonLink>} />
+          </div>
+        )}
+      </section>
+
+      {/* Popular routes from El Fahs */}
+      {home && (
+        <section className="bg-white py-10 sm:py-14">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6">
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{fmt(d.home.regionTitle, { city: locName(home, locale) })}</h2>
+            <p className="mt-1 text-slate-500">{d.home.regionSubtitle}</p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {regionRoutes.map((dest) => {
+                const s = routeStats.get(dest.id);
+                return (
+                  <Link key={dest.id} href={`/search?from=${home.slug}&to=${dest.slug}`} className="group flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-[var(--shadow-card)] transition hover:border-brand-300">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">{routeLabel(locName(home, locale), locName(dest, locale), locale)}</p>
+                      <p className="text-sm text-slate-500">{s ? `${plural(d.home.upcoming, s.count, locale)} · ${fmt(d.home.fromPrice, { price: formatPrice(s.min, locale) })}` : d.home.noTripsYet}</p>
+                    </div>
+                    <ArrowRight className="size-5 shrink-0 text-brand-600 transition group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" aria-hidden />
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* How it works */}
+      <section id="how" className="scroll-mt-20 py-10 sm:py-14">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <h2 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">{d.home.howTitle}</h2>
+          <p className="mx-auto mt-2 max-w-2xl text-center text-slate-600">{d.home.howSubtitle}</p>
+          <div className="mt-6 grid gap-6 sm:mt-10 lg:grid-cols-2">
+            {[
+              { title: d.home.howPassengerTitle, steps: d.home.how, icons: [Search, ListChecks, Car], cta: <ButtonLink href="/search" size="lg" className="w-full sm:w-auto"><Search className="size-5" aria-hidden />{d.home.heroFind}</ButtonLink>, Head: Search, tone: "bg-brand-50 text-brand-700" },
+              { title: d.home.howDriverTitle, steps: d.home.howDriver, icons: [CirclePlus, UserCheck, Users], cta: <ButtonLink href="/dashboard/trips/new" variant="accent" size="lg" className="w-full sm:w-auto"><CirclePlus className="size-5" aria-hidden />{d.home.heroOffer}</ButtonLink>, Head: Car, tone: "bg-accent-50 text-accent-600" },
+            ].map((col) => (
+              <div key={col.title} className="flex flex-col rounded-3xl border border-slate-200 bg-white p-5 sm:p-7">
+                <h3 className="flex items-center gap-3 text-xl font-bold">
+                  <span className={`flex size-10 items-center justify-center rounded-xl ${col.tone}`}><col.Head className="size-5" aria-hidden /></span>
+                  {col.title}
+                </h3>
+                <ol className="mt-6 flex-1 space-y-5">
+                  {col.steps.map((s, i) => {
+                    const Icon = col.icons[i] ?? Search;
+                    return (
+                      <li key={s.title} className="flex gap-4">
+                        <span className="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-brand-600 shadow-sm ring-1 ring-slate-200">
+                          <Icon className="size-5" aria-hidden />
+                          <span className="absolute -top-1 -end-1 flex size-5 items-center justify-center rounded-full bg-brand-600 text-[11px] font-bold text-white">{i + 1}</span>
+                        </span>
+                        <div className="min-w-0">
+                          <p className="font-semibold">{s.title}</p>
+                          <p className="mt-0.5 text-slate-600">{s.body}</p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+                <div className="mt-6">{col.cta}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-b from-brand-900 via-brand-800 to-brand-700 text-white">
         <div className="pointer-events-none absolute inset-0 opacity-[0.12]" style={{ backgroundImage: "radial-gradient(circle at 20% 20%, #fff 0, transparent 35%), radial-gradient(circle at 80% 0%, #ff8a4c 0, transparent 30%)" }} aria-hidden />
         <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-14 sm:px-6 sm:pb-24 sm:pt-20">
           <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold ring-1 ring-white/20 backdrop-blur"><MapPin className="size-3.5" aria-hidden />{d.home.heroBadge}</p>
-          <h1 className="mt-5 max-w-3xl text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl lg:text-6xl animate-fade-up">{d.home.heroTitle}</h1>
+          <h2 className="mt-5 max-w-3xl text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl lg:text-6xl animate-fade-up">{d.home.heroTitle}</h2>
           <p className="mt-4 max-w-2xl text-base text-brand-100 sm:text-lg">{d.home.heroSubtitle}</p>
 
           {/* Two primary actions */}
@@ -94,86 +187,18 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* How it works — right after the hero so first-time visitors see it immediately */}
-      <section id="how" className="scroll-mt-20 bg-white py-14">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <h2 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">{d.home.howTitle}</h2>
-          <p className="mx-auto mt-2 max-w-2xl text-center text-slate-600">{d.home.howSubtitle}</p>
-          <div className="mt-10 grid gap-6 lg:grid-cols-2">
-            {[
-              { title: d.home.howPassengerTitle, steps: d.home.how, icons: [Search, ListChecks, Car], cta: <ButtonLink href="/search" size="lg" className="w-full sm:w-auto"><Search className="size-5" aria-hidden />{d.home.heroFind}</ButtonLink>, Head: Search, tone: "bg-brand-50 text-brand-700" },
-              { title: d.home.howDriverTitle, steps: d.home.howDriver, icons: [CirclePlus, UserCheck, Users], cta: <ButtonLink href="/dashboard/trips/new" variant="accent" size="lg" className="w-full sm:w-auto"><CirclePlus className="size-5" aria-hidden />{d.home.heroOffer}</ButtonLink>, Head: Car, tone: "bg-accent-50 text-accent-600" },
-            ].map((col) => (
-              <div key={col.title} className="flex flex-col rounded-3xl border border-slate-200 bg-sand-100/60 p-5 sm:p-7">
-                <h3 className="flex items-center gap-3 text-xl font-bold">
-                  <span className={`flex size-10 items-center justify-center rounded-xl ${col.tone}`}><col.Head className="size-5" aria-hidden /></span>
-                  {col.title}
-                </h3>
-                <ol className="mt-6 flex-1 space-y-5">
-                  {col.steps.map((s, i) => {
-                    const Icon = col.icons[i] ?? Search;
-                    return (
-                      <li key={s.title} className="flex gap-4">
-                        <span className="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-brand-600 shadow-sm ring-1 ring-slate-200">
-                          <Icon className="size-5" aria-hidden />
-                          <span className="absolute -top-1 -end-1 flex size-5 items-center justify-center rounded-full bg-brand-600 text-[11px] font-bold text-white">{i + 1}</span>
-                        </span>
-                        <div className="min-w-0">
-                          <p className="font-semibold">{s.title}</p>
-                          <p className="mt-0.5 text-slate-600">{s.body}</p>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ol>
-                <div className="mt-6">{col.cta}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Home region */}
-      {home && (
-        <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{fmt(d.home.regionTitle, { city: locName(home, locale) })}</h2>
-          <p className="mt-1 text-slate-500">{d.home.regionSubtitle}</p>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {regionRoutes.map((dest) => {
-              const s = routeStats.get(dest!.id);
-              return (
-                <Link key={dest!.id} href={`/search?from=${home.slug}&to=${dest!.slug}`} className="group flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-[var(--shadow-card)] transition hover:border-brand-300">
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold">{routeLabel(locName(home, locale), locName(dest, locale), locale)}</p>
-                    <p className="text-sm text-slate-500">{s ? `${plural(d.home.upcoming, s.count, locale)} · ${fmt(d.home.fromPrice, { price: formatPrice(s.min, locale) })}` : d.home.noTripsYet}</p>
-                  </div>
-                  <ArrowRight className="size-5 shrink-0 text-brand-600 transition group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" aria-hidden />
-                </Link>
-              );
-            })}
+      {/* Latest completed rides, only when nothing is bookable */}
+      {pastCards.length > 0 && (
+        <section className="bg-white py-14">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6">
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{d.home.pastTitle}</h2>
+            <p className="mt-1 text-slate-500">{d.home.pastSubtitle}</p>
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {pastCards.map((t) => <TripCard key={t.id} trip={t} locations={byId} d={d} locale={locale} />)}
+            </div>
           </div>
         </section>
       )}
-
-      {/* Recent trips */}
-      <section className="bg-white py-14">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{showPast ? d.home.pastTitle : d.home.recentTitle}</h2>
-              <p className="mt-1 text-slate-500">{showPast ? d.home.pastSubtitle : d.home.recentSubtitle}</p>
-            </div>
-            <Link href="/search" className="text-sm font-semibold text-brand-700 hover:underline">{d.common.seeAll}</Link>
-          </div>
-          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {cards.map((t) => <TripCard key={t.id} trip={t} locations={byId} d={d} locale={locale} />)}
-          </div>
-          {loadError && <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{d.errors.unknown}</p>}
-          {!loadError && !showPast && (recent ?? []).length === 0 && (
-            <EmptyState icon={<Car className="size-6" />} title={d.home.recentEmpty} action={<ButtonLink href="/dashboard/trips/new">{d.home.ctaPublish}</ButtonLink>} />
-          )}
-        </div>
-      </section>
 
       {/* Popular destinations */}
       <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6">

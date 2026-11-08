@@ -20,7 +20,8 @@
   --color-accent-100: #ffe6d4;
   --color-accent-400: #ff8a4c;
   --color-accent-500: #f76a25;
-  --color-accent-600: #e5500f;
+  --color-accent-600: #d9480b;
+  --color-accent-700: #b53c09;
 
   --color-sand-50: #fbfaf7;
   --color-sand-100: #f4f1ea;
@@ -30,6 +31,16 @@
   --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 4px 16px -4px rgb(16 24 40 / 0.08);
   --shadow-lift: 0 2px 4px rgb(16 24 40 / 0.04), 0 16px 32px -8px rgb(16 24 40 / 0.14);
 
+  --animate-page-in: page-in 0.25s ease-out both;
+  @keyframes page-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  --animate-pop-in: pop-in 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  @keyframes pop-in {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: none; }
+  }
   --animate-fade-up: fade-up 0.4s ease-out both;
   @keyframes fade-up {
     from { opacity: 0; transform: translateY(8px); }
@@ -37,11 +48,61 @@
   }
 }
 
-html { -webkit-tap-highlight-color: transparent; }
-html[dir="rtl"] body { font-family: var(--font-arabic-first); }
+html { -webkit-tap-highlight-color: transparent; scroll-behavior: smooth; scroll-padding-top: 5.5rem; }
+html[dir="rtl"] body { font-family: var(--font-arabic-first); line-height: 1.65; }
+/* Letter-spacing breaks the joins between Arabic letters. */
+html[dir="rtl"] body * { letter-spacing: 0; }
+h1, h2, h3 { text-wrap: balance; }
 body { background: var(--color-sand-50); color: var(--color-slate-900); }
 
 :focus-visible { outline: 2px solid var(--color-brand-500); outline-offset: 2px; }
+
+/* Native select arrow, drawn on the correct side for LTR and RTL. */
+.wf-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 1.125rem;
+  background-position: right 0.75rem center;
+}
+html[dir="rtl"] .wf-select { background-position: left 0.75rem center; }
+
+/* Search filters: collapsed on phones so results come first, always open on desktop. */
+@media (min-width: 1024px) {
+  .wf-filters::details-content { display: block; content-visibility: visible; }
+  .wf-filters > summary { list-style: none; cursor: default; }
+  .wf-filters > summary::-webkit-details-marker { display: none; }
+}
+
+/* Admin: a working tool, so no marketing footer or the phone tab bar's reserved space. */
+body:has(.wf-admin) { padding-bottom: 0; }
+body:has(.wf-admin) footer { display: none; }
+.wf-scroll-x { scrollbar-width: none; }
+.wf-scroll-x::-webkit-scrollbar { display: none; }
+
+/* Admin tables: real tables when there is room, labelled cards when there isn't.
+   Container-based because the sidebar changes the width available at the same viewport. */
+.wf-table-wrap { container-type: inline-size; }
+.wf-table { width: 100%; font-size: 0.875rem; border-collapse: collapse; }
+.wf-table th { padding: 0.75rem 1rem; text-align: start; font-size: 0.75rem; font-weight: 600; white-space: nowrap; color: var(--color-slate-500); background: var(--color-slate-50); border-bottom: 1px solid var(--color-slate-200); }
+.wf-table td { padding: 0.875rem 1rem; vertical-align: middle; }
+.wf-table tbody tr + tr { border-top: 1px solid var(--color-slate-100); }
+.wf-table tbody tr:hover { background: rgb(248 250 252 / 0.7); }
+
+@container (max-width: 58rem) {
+  .wf-table thead { display: none; }
+  .wf-table, .wf-table tbody, .wf-table tr, .wf-table td { display: block; }
+  .wf-table tbody tr { padding: 1rem; }
+  .wf-table td { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: 0.375rem 0; text-align: end; }
+  .wf-table td::before { content: attr(data-label); flex-shrink: 0; font-size: 0.75rem; font-weight: 600; color: var(--color-slate-500); }
+  .wf-table td[data-primary] { display: block; padding: 0 0 0.5rem; text-align: start; font-size: 0.9375rem; }
+  .wf-table td[data-actions] { display: block; margin-top: 0.625rem; padding: 0.75rem 0 0; border-top: 1px solid var(--color-slate-100); text-align: start; }
+  .wf-table td[data-primary]::before, .wf-table td[data-actions]::before { content: none; }
+}
+@container (min-width: 34rem) and (max-width: 58rem) {
+  .wf-table tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.5rem; }
+  .wf-table td { flex-direction: column; align-items: flex-start; gap: 0.125rem; text-align: start; }
+  .wf-table td[data-primary], .wf-table td[data-actions] { grid-column: 1 / -1; }
+}
 
 /* Leaflet */
 .leaflet-container { font: inherit; z-index: 0; border-radius: inherit; }
@@ -51,5 +112,6 @@ dialog::backdrop { background: rgb(15 23 42 / 0.45); backdrop-filter: blur(2px);
 dialog[open] { animation: fade-up 0.2s ease-out; }
 
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

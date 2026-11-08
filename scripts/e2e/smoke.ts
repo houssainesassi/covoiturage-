@@ -26,7 +26,7 @@ async function main() {
 
   console.log("Home & search");
   await page.goto(BASE + "/");
-  ok("home renders hero", await page.locator("h1").first().isVisible());
+  ok("home opens on the ride offers", await page.locator("h1").first().isVisible());
   await page.fill("#search-from", "fahs");
   await page.locator('[role="option"]').first().click();
   await page.fill("#search-to", "tunis");
@@ -84,11 +84,11 @@ async function main() {
   await page.locator("header select").first().selectOption("ar");
   await page.waitForFunction(() => document.documentElement.dir === "rtl");
   ok("switching to Arabic sets dir=rtl", (await page.evaluate(() => document.documentElement.lang)) === "ar");
-  ok("Arabic hero text", (await page.locator("h1").first().innerText()).includes("الفحص"));
+  ok("Arabic offers heading", (await page.locator("h1").first().innerText()).includes("رحلات"));
   if (shots) await page.screenshot({ path: `${shots}/home-ar.png`, fullPage: false });
   await page.locator("header select").first().selectOption("en");
   await page.waitForFunction(() => document.documentElement.lang === "en");
-  ok("switching to English", (await page.locator("h1").first().innerText()).includes("Travel together"));
+  ok("switching to English", (await page.locator("h1").first().innerText()).includes("Recently published"));
 
   console.log("Mobile layout (390px)");
   const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, locale: "fr-FR" });

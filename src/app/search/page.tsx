@@ -90,10 +90,10 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
       <SearchForm compact locations={locations.map(toLite)} initial={{ from: from?.slug, to: to?.slug, date, seats }} />
-      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[16rem_minmax(0,1fr)]">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:mt-8 lg:gap-8 lg:grid-cols-[16rem_minmax(0,1fr)]">
         <aside>
-          <details className="group rounded-2xl border border-slate-200 bg-white p-4 lg:open:block" open>
-            <summary className="flex cursor-pointer items-center gap-2 font-semibold lg:pointer-events-none"><SlidersHorizontal className="size-4" aria-hidden />{d.common.filters}</summary>
+          <details className="wf-filters rounded-2xl border border-slate-200 bg-white p-4">
+            <summary className="flex min-h-6 cursor-pointer items-center gap-2 font-semibold lg:pointer-events-none"><SlidersHorizontal className="size-4" aria-hidden />{d.common.filters}</summary>
             <div className="mt-4"><SearchFilters /></div>
           </details>
           <p className="mt-3 px-1 text-xs text-slate-500">{d.search.radiusHint}</p>

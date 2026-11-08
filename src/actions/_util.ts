@@ -19,3 +19,15 @@ export async function authed(): Promise<Authed> {
 export function result(error: { message?: string; code?: string } | null): ActionResult {
   return error ? fail(toErrorCode(error)) : { ok: true };
 }
+
+/**
+ * Saves private profile fields. Not an upsert: PostgREST upserts also write `id`,
+ * and users have no UPDATE privilege on that column.
+ * The row normally exists already (created by the signup trigger).
+ */
+export async function savePrivateProfile(supabase: ServerSupabase, userId: string, fields: { phone: string; date_of_birth?: string | null }) {
+  const { data, error } = await supabase.from("profile_private").update(fields).eq("id", userId).select("id");
+  if (error || data?.length) return { error };
+  const { error: insertError } = await supabase.from("profile_private").insert({ id: userId, ...fields });
+  return { error: insertError };
+}

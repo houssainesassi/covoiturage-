@@ -2,10 +2,10 @@ import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const control =
-  "w-full rounded-xl border border-slate-300 bg-white px-3.5 text-[15px] text-slate-900 placeholder:text-slate-400 transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15 disabled:bg-slate-50 aria-[invalid=true]:border-red-500";
+  "w-full rounded-xl border border-slate-300 bg-white px-3.5 text-base sm:text-[15px] text-slate-900 placeholder:text-slate-400 transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15 disabled:bg-slate-50 aria-[invalid=true]:border-red-500";
 
 export function Input({ className, ...props }: ComponentProps<"input">) {
-  return <input className={cn(control, "h-11", className)} {...props} />;
+  return <input className={cn(control, "h-12", className)} {...props} />;
 }
 
 export function Textarea({ className, ...props }: ComponentProps<"textarea">) {
@@ -13,7 +13,7 @@ export function Textarea({ className, ...props }: ComponentProps<"textarea">) {
 }
 
 export function Select({ className, ...props }: ComponentProps<"select">) {
-  return <select className={cn(control, "h-11 appearance-none bg-[length:1rem] pe-9", className)} {...props} />;
+  return <select className={cn(control, "wf-select h-12 appearance-none pe-9", className)} {...props} />;
 }
 
 export function Label({ className, ...props }: ComponentProps<"label">) {

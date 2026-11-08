@@ -4,12 +4,18 @@ import { revalidatePath } from "next/cache";
 import { fail, toErrorCode, type ActionResult, type ErrorCode } from "@/lib/errors";
 import { tripSchema, vehicleSchema } from "@/lib/validation";
 import { tunisLocalToISO } from "@/lib/i18n/format";
+import { TN_PHONE_REGEX } from "@/lib/phone";
 import { authed, result } from "./_util";
 
 export async function saveTripAction(tripId: string | null, _: ActionResult | null, fd: FormData): Promise<ActionResult> {
   const ctx = await authed();
   if ("error" in ctx) return ctx.error;
   const { supabase, userId } = ctx;
+
+  // Passengers must be able to call the driver: no valid phone number, no ride.
+  const { data: priv, error: phoneError } = await supabase.from("profile_private").select("phone").eq("id", userId).maybeSingle();
+  if (phoneError) return fail(toErrorCode(phoneError));
+  if (!priv?.phone || !TN_PHONE_REGEX.test(priv.phone)) return fail("publish_phone_required");
 
   const parsed = tripSchema.safeParse(Object.fromEntries(fd));
   if (!parsed.success) {

@@ -29,11 +29,11 @@ export async function Navbar() {
     <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
         <Logo name={d.common.appName} />
-        <nav className="ms-6 hidden items-center gap-1 md:flex">
-          <Link href="/search" className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+        <nav className="ms-1 hidden items-center gap-1 md:flex lg:ms-6">
+          <Link href="/search" className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
             <Search className="size-4" aria-hidden /> {d.nav.search}
           </Link>
-          <Link href="/dashboard/trips/new" className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+          <Link href="/dashboard/trips/new" className={buttonClass("accent", "sm", "lg:ms-2")}>
             <PlusCircle className="size-4" aria-hidden /> {d.nav.publish}
           </Link>
         </nav>

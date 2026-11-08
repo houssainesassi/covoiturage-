@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { CalendarDays, Car, Cigarette, CigaretteOff, Clock, Dog, Luggage, MessageSquare, Music, Phone, Route, ShieldCheck, Star, VolumeX } from "lucide-react";
+import { ArrowLeft, CalendarDays, Car, Cigarette, CigaretteOff, Clock, Dog, Luggage, MessageSquare, Music, Phone, Route, Users, VolumeX } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getUser } from "@/lib/auth";
 import { getLocationMap } from "@/lib/locations";
@@ -10,14 +10,13 @@ import { createClient } from "@/lib/supabase/server";
 import { fmt, formatDate, formatDuration, formatPrice, formatTime, plural } from "@/lib/i18n/format";
 import { locName } from "@/lib/names";
 import { routeLabel } from "@/lib/notifications";
-import { formatTunisianPhone } from "@/lib/phone";
 import { publicUrl } from "@/lib/storage";
 import { uuidSchema } from "@/lib/validation";
 import { RouteMap } from "@/components/map";
 import { Avatar } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { BookingPanel } from "@/components/trips/booking-panel";
-import { ContactButton } from "@/components/trips/contact-button";
+import { DriverContact } from "@/components/trips/driver-contact";
 import { ReportDialog } from "@/components/report/report-dialog";
 import { buttonClass } from "@/components/ui/button";
 import { DemoBadge } from "@/components/ui/badge";
@@ -62,11 +61,12 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
       ? supabase.from("bookings").select("id, status, seats, total_price").eq("trip_id", trip.id).eq("passenger_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle()
       : Promise.resolve({ data: null }),
     user ? supabase.rpc("get_trip_contacts", { p_trip_id: trip.id }) : Promise.resolve({ data: null }),
-    supabase.rpc("get_driver_phones", { p_driver_ids: [trip.driver_id] }),
+    user ? supabase.rpc("get_driver_phones", { p_driver_ids: [trip.driver_id] }) : Promise.resolve({ data: null }),
   ]);
-  const driverPhone = phonesRes.data?.[0]?.phone ?? null;
   const myBooking = myBookingRes.data && ["pending", "confirmed", "completed"].includes(myBookingRes.data.status) ? myBookingRes.data : null;
   const driverContact = (contactsRes.data ?? []).find((c) => c.role === "driver");
+  const driverPhone = driverContact?.phone ?? phonesRes.data?.[0]?.phone ?? null;
+  const wasRejected = myBookingRes.data?.status === "rejected";
 
   const departed = new Date(trip.departure_at) <= new Date();
   const state = isOwner ? "own"
@@ -87,7 +87,7 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
-      <Link href="/search" className="text-sm font-medium text-slate-500 hover:text-brand-700">← {d.nav.search}</Link>
+      <Link href="/search" className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 transition hover:text-brand-700"><ArrowLeft className="size-4 rtl:rotate-180" aria-hidden />{d.nav.search}</Link>
       {trip.is_demo && (
         <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="note">
           <DemoBadge label={d.common.demo} />{d.trip.demoNotice}
@@ -96,31 +96,67 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
       <h1 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">{routeLabel(locName(origin, locale), locName(destination, locale), locale)}</h1>
       <p className="mt-1 flex items-center gap-2 text-slate-600"><CalendarDays className="size-4" aria-hidden />{formatDate(trip.departure_at, locale, "full")}</p>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="space-y-6">
+      {/* Phones: route, then contact + booking, then the details. Desktop: booking stays in a side column. */}
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:grid-rows-[auto_1fr]">
+        <div className="lg:col-start-1">
           <Card className="p-5 sm:p-6">
             <ol className="relative space-y-6 ps-8">
               <span className="absolute inset-y-2 start-[11px] w-0.5 bg-slate-200" aria-hidden />
               <li className="relative">
                 <span className="absolute -start-8 top-1 size-6 rounded-full border-4 border-brand-600 bg-white" aria-hidden />
                 <p className="text-2xl font-bold tabular-nums">{formatTime(trip.departure_at, locale)}</p>
-                <p className="font-semibold">{locName(origin, locale)}</p>
+                <p className="text-lg font-bold">{locName(origin, locale)}</p>
                 <p className="text-sm text-slate-500">{d.trip.pickup}: {trip.origin_address}</p>
               </li>
               <li className="relative">
                 <span className="absolute -start-8 top-1 size-6 rounded-full border-4 border-accent-500 bg-white" aria-hidden />
-                <p className="text-2xl font-bold tabular-nums">{arrival ? formatTime(arrival, locale) : "—"}</p>
-                <p className="font-semibold">{locName(destination, locale)}</p>
+                {arrival && <p className="text-2xl font-bold tabular-nums">{formatTime(arrival, locale)}</p>}
+                <p className="text-lg font-bold">{locName(destination, locale)}</p>
                 <p className="text-sm text-slate-500">{d.trip.dropoff}: {trip.destination_address}</p>
               </li>
             </ol>
             <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 border-t border-slate-100 pt-4 text-sm text-slate-600">
               {trip.distance_km ? <span className="flex items-center gap-1.5"><Route className="size-4" aria-hidden />{fmt(d.units.km, { count: Number(trip.distance_km) })}</span> : null}
               {trip.duration_min ? <span className="flex items-center gap-1.5"><Clock className="size-4" aria-hidden />{formatDuration(trip.duration_min, locale)}</span> : null}
+              <span className="flex items-center gap-1.5 font-semibold text-brand-800"><Users className="size-4" aria-hidden />{trip.seats_available > 0 ? plural(d.units.seatsLeft, trip.seats_available, locale) : d.search.full}</span>
               <span className="flex items-center gap-1.5"><Luggage className="size-4" aria-hidden />{d.trip.luggageSizes[trip.luggage_size]}</span>
             </div>
           </Card>
 
+        </div>
+
+        <aside className="space-y-4 lg:sticky lg:top-24 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start">
+          <DriverContact
+            d={d}
+            locale={locale}
+            tripId={trip.id}
+            driver={driver}
+            phone={driverPhone}
+            plate={driverContact?.plate_number}
+            viewer={isOwner ? "owner" : user ? "member" : "guest"}
+            active={trip.status === "scheduled" && !departed}
+          />
+          <Card id="book" className="scroll-mt-24 p-5">
+            <div className="mb-4 flex items-end justify-between gap-3">
+              <div>
+                <p className="text-3xl font-extrabold text-brand-700">{formatPrice(Number(trip.price_per_seat), locale)}</p>
+                <p className="text-sm text-slate-500">{d.common.perSeat}</p>
+              </div>
+              <p className="text-sm font-semibold text-brand-700">{trip.seats_available > 0 ? plural(d.units.seatsLeft, trip.seats_available, locale) : d.search.full}</p>
+            </div>
+            <BookingPanel
+              tripId={trip.id}
+              price={Number(trip.price_per_seat)}
+              seatsAvailable={trip.seats_available}
+              state={state}
+              wasRejected={wasRejected}
+              initialSeats={Number(typeof sp.seats === "string" ? sp.seats : 1) || 1}
+              booking={myBooking ? { id: myBooking.id, status: myBooking.status, seats: myBooking.seats, total: Number(myBooking.total_price) } : null}
+            />
+          </Card>
+        </aside>
+
+        <div className="space-y-6 lg:col-start-1">
           <Card className="overflow-hidden">
             <div className="h-72 sm:h-80">
               <RouteMap className="h-full w-full" origin={{ lat: trip.origin_lat, lng: trip.origin_lng }} destination={{ lat: trip.destination_lat, lng: trip.destination_lng }} />
@@ -128,16 +164,10 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
           </Card>
 
           <Card className="p-5 sm:p-6">
-            <div className="flex items-start gap-4">
-              <Avatar path={driver.avatar_path} name={driver.full_name} size="lg" />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{d.trip.driver}</p>
-                <Link href={`/users/${driver.id}`} className="text-lg font-bold hover:text-brand-700">{driver.full_name || d.common.unknownUser}</Link>
-                <p className="flex flex-wrap items-center gap-x-2 text-sm text-slate-500">
-                  {driver.rating_count > 0 ? <span className="flex items-center gap-1"><Star className="size-4 fill-amber-400 text-amber-400" aria-hidden />{fmt(d.trip.ratingLine, { rating: Number(driver.rating_avg).toFixed(1), count: plural(d.units.reviews, driver.rating_count, locale) })}</span> : <span>{d.trip.newMember}</span>}
-                  <span>· {plural(d.trip.tripsDriven, driver.trips_driven, locale)}</span>
-                </p>
-                {driverPhone && <a href={`tel:${driverPhone}`} className="mt-1 inline-flex items-center gap-1.5 text-base font-semibold text-brand-700 hover:underline" dir="ltr"><Phone className="size-4" aria-hidden />{formatTunisianPhone(driverPhone)}</a>}
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h2 className="font-semibold">{d.trip.preferences}</h2>
+                <p className="mt-1 text-sm text-slate-500">{plural(d.trip.tripsDriven, driver.trips_driven, locale)}</p>
                 {driver.bio && <p className="mt-3 text-sm text-slate-600">{driver.bio}</p>}
               </div>
               {user && !isOwner && <ReportDialog userId={driver.id} name={driver.full_name} tripId={trip.id} compact />}
@@ -153,8 +183,6 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
             )}
             <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
               <Link href={`/users/${driver.id}`} className={buttonClass("ghost", "sm")}>{d.trip.viewProfile}</Link>
-              {!isOwner && driverPhone && <a href={`tel:${driverPhone}`} className={buttonClass("primary", "sm")}><Phone className="size-4" aria-hidden />{d.trip.callDriver}</a>}
-              {!isOwner && trip.status === "scheduled" && (user ? <ContactButton tripId={trip.id} label={d.trip.contactDriver} size="sm" /> : <Link href={`/auth/login?next=/trips/${trip.id}`} className={buttonClass("outline", "sm")}>{d.trip.contactDriver}</Link>)}
             </div>
           </Card>
 
@@ -180,37 +208,18 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
           </Card>
         </div>
 
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <Card className="p-5 sm:p-6">
-            <div className="mb-5 flex items-end justify-between">
-              <div>
-                <p className="text-3xl font-extrabold">{formatPrice(Number(trip.price_per_seat), locale)}</p>
-                <p className="text-sm text-slate-500">{d.common.perSeat}</p>
-              </div>
-              <p className="text-sm font-semibold text-brand-700">{trip.seats_available > 0 ? plural(d.units.seatsLeft, trip.seats_available, locale) : d.search.full}</p>
-            </div>
-            <BookingPanel
-              tripId={trip.id}
-              price={Number(trip.price_per_seat)}
-              seatsAvailable={trip.seats_available}
-              state={state}
-              initialSeats={Number(typeof sp.seats === "string" ? sp.seats : 1) || 1}
-              booking={myBooking ? { id: myBooking.id, status: myBooking.status, seats: myBooking.seats, total: Number(myBooking.total_price) } : null}
-            />
-          </Card>
-          {myBooking && (
-            <Card className="mt-4 p-5">
-              <h2 className="flex items-center gap-2 font-semibold"><ShieldCheck className="size-5 text-brand-600" aria-hidden />{d.trip.contactTitle}</h2>
-              {driverContact ? (
-                <dl className="mt-3 space-y-2 text-sm">
-                  {driverContact.phone && <div className="flex justify-between gap-3"><dt className="text-slate-500">{d.trip.phone}</dt><dd><a href={`tel:${driverContact.phone}`} className="flex items-center gap-1 font-semibold text-brand-700" dir="ltr"><Phone className="size-4" aria-hidden />{formatTunisianPhone(driverContact.phone)}</a></dd></div>}
-                  {driverContact.plate_number && <div className="flex justify-between gap-3"><dt className="text-slate-500">{d.trip.plate}</dt><dd className="font-semibold">{driverContact.plate_number}</dd></div>}
-                </dl>
-              ) : <p className="mt-2 text-sm text-slate-500">{d.trip.contactHidden}</p>}
-            </Card>
-          )}
-        </aside>
       </div>
+
+      {(state === "bookable" || state === "guest") && !myBooking && (
+        <div className="fixed inset-x-0 bottom-0 z-20 flex items-center gap-3 border-t border-slate-200 bg-white/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md lg:hidden">
+          <div className="min-w-0 flex-1">
+            <p className="text-lg font-extrabold leading-tight text-brand-700">{formatPrice(Number(trip.price_per_seat), locale)}</p>
+            <p className="truncate text-xs text-slate-500">{plural(d.units.seatsLeft, trip.seats_available, locale)}</p>
+          </div>
+          {driverPhone && <a href={`tel:${driverPhone}`} aria-label={d.trip.callDriver} className={buttonClass("secondary", "icon", "h-12 w-12")}><Phone className="size-5" aria-hidden /></a>}
+          <a href="#book" className={buttonClass("primary", "lg", "h-12 px-7")}>{d.trip.bookNow}</a>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,11 +2,12 @@
 import { useFormAction } from "@/lib/use-form-action";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Lock, Route as RouteIcon } from "lucide-react";
+import { Lock, Phone, Route as RouteIcon } from "lucide-react";
 import { saveTripAction } from "@/actions/trips";
 import { useI18n } from "@/lib/i18n/client";
 import { fmt, formatDuration, formatPrice, plural } from "@/lib/i18n/format";
 import type { LocationLite } from "@/lib/location-lite";
+import { formatTunisianPhone } from "@/lib/phone";
 import { fetchRoute, suggestPrice, type LatLng } from "@/lib/routing";
 import { LocationPicker } from "@/components/map";
 import { LocationCombobox } from "@/components/search/location-combobox";
@@ -22,7 +23,7 @@ export type TripFormInitial = {
   vehicleId: string | null; luggage: LuggageSize; description: string;
 };
 
-export function TripForm({ tripId, locations, vehicles, initial, bookedSeats = 0, defaultOriginSlug, defaultDate, minDate }: { tripId?: string; locations: LocationLite[]; vehicles: TripFormVehicle[]; initial?: TripFormInitial; bookedSeats?: number; defaultOriginSlug?: string; defaultDate: string; minDate: string }) {
+export function TripForm({ tripId, locations, vehicles, initial, bookedSeats = 0, defaultOriginSlug, defaultDate, minDate, driverPhone }: { driverPhone?: string; tripId?: string; locations: LocationLite[]; vehicles: TripFormVehicle[]; initial?: TripFormInitial; bookedSeats?: number; defaultOriginSlug?: string; defaultDate: string; minDate: string }) {
   const { d, locale } = useI18n();
   const [state, action, pending] = useFormAction(saveTripAction.bind(null, tripId ?? null));
   const byId = (id?: string | null) => locations.find((l) => l.id === id) ?? null;
@@ -89,6 +90,13 @@ export function TripForm({ tripId, locations, vehicles, initial, bookedSeats = 0
 
   return (
     <form onSubmit={action} className="space-y-6">
+      {driverPhone && (
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm font-medium text-brand-900">
+          <Phone className="size-4 shrink-0 text-brand-700" aria-hidden />
+          <span>{fmt(d.tripForm.phoneGate.shown, { phone: "" })}<bdi dir="ltr" className="font-bold">{formatTunisianPhone(driverPhone)}</bdi></span>
+          <Link href="/dashboard/profile" className="ms-auto font-semibold underline underline-offset-2">{d.tripForm.phoneGate.change}</Link>
+        </p>
+      )}
       <Card>
         <CardHeader title={d.tripForm.route} description={routeLocked ? d.tripForm.routeLocked : undefined} />
         <div className="grid gap-6 p-5 sm:p-6 md:grid-cols-2">
@@ -175,8 +183,9 @@ export function TripForm({ tripId, locations, vehicles, initial, bookedSeats = 0
       </Card>
 
       {state && !state.ok && <FormError message={d.errors[state.error]} />}
+      {state && !state.ok && state.error === "publish_phone_required" && <Link href="/dashboard/profile" className="block text-sm font-semibold text-brand-700 underline">{d.nav.profile}</Link>}
       <div className="flex justify-end">
-        <SubmitButton pending={pending} size="lg" pendingLabel={d.common.saving}>{tripId ? d.tripForm.submitEdit : d.tripForm.submitNew}</SubmitButton>
+        <SubmitButton pending={pending} size="lg" className="w-full sm:w-auto" pendingLabel={d.common.saving}>{tripId ? d.tripForm.submitEdit : d.tripForm.submitNew}</SubmitButton>
       </div>
     </form>
   );

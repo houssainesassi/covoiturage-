@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, CalendarCheck, Car, CarFront, LayoutDashboard, MessageCircle, Settings, Star, User, Wallet, Shield, BarChart3, Users, Flag, Route } from "lucide-react";
+import { Bell, CalendarCheck, Car, CarFront, LayoutDashboard, MessageCircle, Settings, Star, User, Wallet, Shield } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 
@@ -30,26 +30,6 @@ export function DashboardSidebar({ isAdmin }: { isAdmin: boolean }) {
         ...(isAdmin ? [{ href: "/admin", label: d.nav.admin, icon: Shield }] : []),
       ],
     },
-  ];
-  return <SideNav groups={groups} path={path} />;
-}
-
-export function AdminSidebar() {
-  const { d } = useI18n();
-  const path = usePathname();
-  const groups = [
-    {
-      title: d.admin.title,
-      items: [
-        { href: "/admin", label: d.admin.overview, icon: BarChart3, exact: true },
-        { href: "/admin/users", label: d.admin.users, icon: Users },
-        { href: "/admin/trips", label: d.admin.trips, icon: Route },
-        { href: "/admin/bookings", label: d.admin.bookings, icon: CalendarCheck },
-        { href: "/admin/reports", label: d.admin.reports, icon: Flag },
-        { href: "/admin/reviews", label: d.admin.reviews, icon: Star },
-      ],
-    },
-    { title: null, items: [{ href: "/dashboard", label: d.nav.dashboard, icon: LayoutDashboard, exact: true }] },
   ];
   return <SideNav groups={groups} path={path} />;
 }

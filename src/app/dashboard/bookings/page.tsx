@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarCheck } from "lucide-react";
+import { CalendarCheck, Phone } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { getI18n } from "@/lib/i18n/server";
 import { getLocationMap } from "@/lib/locations";
@@ -14,7 +14,9 @@ import { Badge, bookingTone } from "@/components/ui/badge";
 import { ButtonLink, buttonClass } from "@/components/ui/button";
 import { EmptyState, Tabs } from "@/components/ui/misc";
 import { ConfirmAction } from "@/components/ui/client";
+import { BookingStatusNotice } from "@/components/trips/booking-status";
 import { ContactButton } from "@/components/trips/contact-button";
+import { formatTunisianPhone } from "@/lib/phone";
 
 export default async function BookingsPage({ searchParams }: PageProps<"/dashboard/bookings">) {
   const user = await requireUser("/dashboard/bookings");
@@ -29,10 +31,13 @@ export default async function BookingsPage({ searchParams }: PageProps<"/dashboa
     .select("id, status, seats, total_price, created_at, cancellation_reason, trip:trips!bookings_trip_id_fkey!inner(id, departure_at, origin_id, destination_id, origin_address, status, driver:profiles!trips_driver_id_fkey(id, full_name, avatar_path))")
     .eq("passenger_id", user.id);
   q = tab === "upcoming"
-    ? q.in("status", ["pending", "confirmed"]).gt("trip.departure_at", now).order("created_at", { ascending: false })
+    ? q.in("status", ["pending", "confirmed", "rejected"]).gt("trip.departure_at", now).order("created_at", { ascending: false })
     : q.order("created_at", { ascending: false }).limit(100);
   const [{ data: raw }, { data: pending }] = await Promise.all([q, supabase.rpc("pending_reviews")]);
-  const bookings = tab === "upcoming" ? raw : (raw ?? []).filter((b) => !["pending", "confirmed"].includes(b.status) || b.trip!.departure_at <= now);
+  const bookings = tab === "upcoming" ? raw : (raw ?? []).filter((b) => !["pending", "confirmed", "rejected"].includes(b.status) || b.trip!.departure_at <= now);
+  const driverIds = [...new Set((bookings ?? []).filter((b) => b.trip!.departure_at > now).map((b) => b.trip!.driver?.id).filter((id): id is string => !!id))];
+  const { data: phones } = driverIds.length ? await supabase.rpc("get_driver_phones", { p_driver_ids: driverIds }) : { data: null };
+  const phoneOf = new Map((phones ?? []).map((p) => [p.driver_id, p.phone]));
   const toReview = new Set((pending ?? []).filter((p) => p.reviewee_role === "driver").map((p) => p.trip_id));
 
   return (
@@ -46,6 +51,7 @@ export default async function BookingsPage({ searchParams }: PageProps<"/dashboa
           {bookings!.map((b) => {
             const t = b.trip!;
             const active = ["pending", "confirmed"].includes(b.status) && t.departure_at > now;
+            const phone = active && t.driver ? phoneOf.get(t.driver.id) : null;
             return (
               <li key={b.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[var(--shadow-card)] sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -61,10 +67,11 @@ export default async function BookingsPage({ searchParams }: PageProps<"/dashboa
                   <span className="text-slate-600">{plural(d.units.seats, b.seats, locale)} · <strong>{formatPrice(Number(b.total_price), locale)}</strong></span>
                   <span className="text-slate-400">{fmt(d.bookings.requestedOn, { date: formatDateTime(b.created_at, locale) })}</span>
                 </div>
-                {b.status === "pending" && active && <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{d.bookings.pendingHint}</p>}
+                {(active || (b.status === "rejected" && t.departure_at > now)) && <BookingStatusNotice status={b.status} d={d} className="mt-3" />}
                 {b.cancellation_reason && <p className="mt-3 text-sm italic text-slate-500">“{b.cancellation_reason}”</p>}
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Link href={`/trips/${t.id}`} className={buttonClass("ghost", "sm")}>{d.bookings.viewTrip}</Link>
+                  {phone && <a href={`tel:${phone}`} aria-label={`${d.trip.callDriver}: ${formatTunisianPhone(phone)}`} className={buttonClass("primary", "sm")} dir="ltr"><Phone className="size-4" aria-hidden />{formatTunisianPhone(phone)}</a>}
+                  <Link href={`/trips/${t.id}`} className={buttonClass("outline", "sm")}>{d.bookings.viewTrip}</Link>
                   {active && <ContactButton tripId={t.id} label={d.bookings.messageDriver} size="sm" />}
                   {active && (
                     <ConfirmAction action={cancelBookingAction.bind(null, b.id)} label={d.bookings.cancel} title={d.bookings.cancelTitle} body={`${d.bookings.cancelBody}`} confirmLabel={d.bookings.confirmCancel} successMessage={d.bookings.cancelled} withReason variant="outline" />
