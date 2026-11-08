@@ -56,11 +56,6 @@ export function ProfileForm({ profile, phone, dob, locations }: { profile: Profi
           </div>
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}><Camera className="size-4" aria-hidden />{d.profile.changePhoto}</Button>
-            {avatar && (
-              <Button type="button" variant="ghost" disabled={uploading} onClick={() => startUpload(async () => { const r = await updateAvatarAction(null); if (r.ok) { setAvatar(null); router.refresh(); } })}>
-                {d.profile.removePhoto}
-              </Button>
-            )}
             <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => onAvatar(e.target.files?.[0])} />
           </div>
         </div>
@@ -73,7 +68,7 @@ export function ProfileForm({ profile, phone, dob, locations }: { profile: Profi
             <Field label={d.profile.phone} htmlFor="phone" error={err("phone")} hint={d.profile.phoneHint}>
               <div className="flex" dir="ltr">
                 <span className="flex items-center rounded-s-xl border border-e-0 border-slate-300 bg-slate-50 px-3 text-sm text-slate-600">+216</span>
-                <Input id="phone" name="phone" type="tel" inputMode="tel" defaultValue={phone.replace(/^\+216/, "")} placeholder="22 123 456" className="rounded-s-none" aria-invalid={!!err("phone")} />
+                <Input id="phone" name="phone" type="tel" inputMode="tel" defaultValue={phone.replace(/^\+216/, "")} required placeholder="22 123 456" className="rounded-s-none" aria-invalid={!!err("phone")} />
               </div>
             </Field>
             <Field label={d.profile.city} htmlFor="cityId" optional={d.common.optional}>

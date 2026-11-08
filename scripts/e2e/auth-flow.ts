@@ -26,18 +26,39 @@ async function main() {
 
   console.log(`Sign up (${email})`);
   let page = await newPage();
-  await page.goto(BASE + "/auth/register");
-  await page.fill("#fullName", "Test Wasalni");
-  await page.fill("#email", email);
-  await page.fill("#phone", "22 123 456");
-  await page.fill("#password", password);
-  await page.fill("#confirm", password);
-  await page.check('input[name="terms"]');
-  await page.locator('button[type="submit"]').click();
+  const submitRegister = async (phone: string) => {
+    await page.goto(BASE + "/auth/register");
+    await page.fill("#fullName", "Test Wasalni");
+    await page.fill("#email", email);
+    await page.fill("#phone", phone);
+    await page.fill("#password", password);
+    await page.fill("#confirm", password);
+    await page.check('input[name="terms"]');
+    await page.locator('button[type="submit"]').click();
+  };
+  for (const [label, phone] of [["without a phone", ""], ["with an invalid phone", "12 345"], ["with a foreign phone", "+33 6 12 34 56 78"]]) {
+    await submitRegister(phone);
+    await page.locator("#phone-error").waitFor({ timeout: 15000 }).catch(() => {});
+    ok(`register ${label} is rejected`, page.url().includes("/auth/register") && (await page.locator("#phone-error").count()) > 0, page.url());
+  }
+  await submitRegister("22 123 456");
   await page.waitForURL((u) => !u.pathname.startsWith("/auth/register"), { timeout: 20000 }).catch(() => {});
   const alert = await page.locator('form [role="alert"]').allInnerTexts();
   ok("register leaves the form", !page.url().includes("/auth/register"), { url: page.url(), alert });
-  ok("register logs in directly (no check-email)", !page.url().includes("check-email"), page.url());
+  ok("register → profile completion page", page.url().includes("/auth/complete-profile"), page.url());
+
+  console.log("Complete profile");
+  await page.goto(BASE + "/dashboard");
+  ok("incomplete profile is redirected from the app", page.url().includes("/auth/complete-profile"), page.url());
+  await page.locator('form button[type="submit"]').click();
+  await page.locator('[role="alert"]').first().waitFor({ timeout: 15000 }).catch(() => {});
+  ok("completion without avatar is refused", page.url().includes("/auth/complete-profile") && (await page.locator('[role="alert"]').count()) > 0, page.url());
+  await page.locator('input[type="file"]').setInputFiles("public/icons/icon-192.png");
+  await page.locator('input[name="avatarPath"][value*="/"]').waitFor({ state: "attached", timeout: 20000 }).catch(() => {});
+  ok("avatar uploads", (await page.locator('input[name="avatarPath"]').inputValue()).includes("/"));
+  await page.locator('form button[type="submit"]').click();
+  await page.waitForURL((u) => !u.pathname.startsWith("/auth/complete-profile"), { timeout: 20000 }).catch(() => {});
+  ok("completed profile opens the app", !page.url().includes("/auth/"), page.url());
   await page.context().close();
 
   console.log("Log in");
@@ -78,6 +99,7 @@ async function main() {
     await pub.goto(BASE + `/trips/${id}`);
     const body = await pub.locator("main").innerText();
     ok("public trip page shows route", /El Fahs/.test(body) && /Tunis/.test(body), body.slice(0, 300));
+    ok("public trip page shows the driver's phone", (await pub.locator('a[href="tel:+21622123456"]').count()) > 0);
     ok("public trip page shows price", /8/.test(body));
     await pub.goto(BASE + "/search?from=el-fahs&to=tunis");
     ok("trip appears in search", (await pub.locator(`a[href="/trips/${id}"]`).count()) > 0);

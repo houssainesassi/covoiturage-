@@ -8,7 +8,7 @@ import { site } from "@/lib/site";
 import { fmt, formatNumber, formatPrice, plural } from "@/lib/i18n/format";
 import { locName } from "@/lib/names";
 import { routeLabel } from "@/lib/notifications";
-import { TRIP_CARD_SELECT, toCard } from "@/lib/queries";
+import { TRIP_CARD_SELECT, toCard, withDriverPhones } from "@/lib/queries";
 import { SearchForm } from "@/components/search/search-form";
 import { TripCard } from "@/components/trips/trip-card";
 import { ButtonLink } from "@/components/ui/button";
@@ -34,6 +34,7 @@ export default async function HomePage() {
     ? await supabase.from("trips").select(TRIP_CARD_SELECT).eq("status", "completed").order("departure_at", { ascending: false }).limit(6)
     : { data: null };
   const showPast = (past ?? []).length > 0;
+  const cards = await withDriverPhones(supabase, (showPast ? past! : recent ?? []).map(toCard));
 
   const routeStats = new Map<string, { count: number; min: number }>();
   const destStats = new Map<string, number>();
@@ -165,7 +166,7 @@ export default async function HomePage() {
             <Link href="/search" className="text-sm font-semibold text-brand-700 hover:underline">{d.common.seeAll}</Link>
           </div>
           <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {(showPast ? past! : recent ?? []).map((t) => <TripCard key={t.id} trip={toCard(t)} locations={byId} d={d} locale={locale} />)}
+            {cards.map((t) => <TripCard key={t.id} trip={t} locations={byId} d={d} locale={locale} />)}
           </div>
           {loadError && <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{d.errors.unknown}</p>}
           {!loadError && !showPast && (recent ?? []).length === 0 && (

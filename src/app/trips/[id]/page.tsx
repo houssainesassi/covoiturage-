@@ -56,13 +56,15 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
   const driver = trip.driver;
   const isOwner = user?.id === trip.driver_id;
 
-  const [{ data: passengers }, myBookingRes, contactsRes] = await Promise.all([
+  const [{ data: passengers }, myBookingRes, contactsRes, phonesRes] = await Promise.all([
     supabase.rpc("get_trip_passengers_public", { p_trip_id: trip.id }),
     user && !isOwner
       ? supabase.from("bookings").select("id, status, seats, total_price").eq("trip_id", trip.id).eq("passenger_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle()
       : Promise.resolve({ data: null }),
     user ? supabase.rpc("get_trip_contacts", { p_trip_id: trip.id }) : Promise.resolve({ data: null }),
+    supabase.rpc("get_driver_phones", { p_driver_ids: [trip.driver_id] }),
   ]);
+  const driverPhone = phonesRes.data?.[0]?.phone ?? null;
   const myBooking = myBookingRes.data && ["pending", "confirmed", "completed"].includes(myBookingRes.data.status) ? myBookingRes.data : null;
   const driverContact = (contactsRes.data ?? []).find((c) => c.role === "driver");
 
@@ -135,6 +137,7 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
                   {driver.rating_count > 0 ? <span className="flex items-center gap-1"><Star className="size-4 fill-amber-400 text-amber-400" aria-hidden />{fmt(d.trip.ratingLine, { rating: Number(driver.rating_avg).toFixed(1), count: plural(d.units.reviews, driver.rating_count, locale) })}</span> : <span>{d.trip.newMember}</span>}
                   <span>· {plural(d.trip.tripsDriven, driver.trips_driven, locale)}</span>
                 </p>
+                {driverPhone && <a href={`tel:${driverPhone}`} className="mt-1 inline-flex items-center gap-1.5 text-base font-semibold text-brand-700 hover:underline" dir="ltr"><Phone className="size-4" aria-hidden />{formatTunisianPhone(driverPhone)}</a>}
                 {driver.bio && <p className="mt-3 text-sm text-slate-600">{driver.bio}</p>}
               </div>
               {user && !isOwner && <ReportDialog userId={driver.id} name={driver.full_name} tripId={trip.id} compact />}
@@ -150,6 +153,7 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
             )}
             <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
               <Link href={`/users/${driver.id}`} className={buttonClass("ghost", "sm")}>{d.trip.viewProfile}</Link>
+              {!isOwner && driverPhone && <a href={`tel:${driverPhone}`} className={buttonClass("primary", "sm")}><Phone className="size-4" aria-hidden />{d.trip.callDriver}</a>}
               {!isOwner && trip.status === "scheduled" && (user ? <ContactButton tripId={trip.id} label={d.trip.contactDriver} size="sm" /> : <Link href={`/auth/login?next=/trips/${trip.id}`} className={buttonClass("outline", "sm")}>{d.trip.contactDriver}</Link>)}
             </div>
           </Card>

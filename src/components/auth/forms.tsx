@@ -39,10 +39,10 @@ export function RegisterForm({ next }: { next?: string }) {
       <Field label={d.auth.email} htmlFor="email" error={err("email")}>
         <Input id="email" name="email" type="email" autoComplete="email" required dir="ltr" aria-invalid={!!err("email")} />
       </Field>
-      <Field label={d.auth.phone} htmlFor="phone" error={err("phone")} hint={d.auth.phoneHint} optional={d.common.optional}>
+      <Field label={d.auth.phone} htmlFor="phone" error={err("phone")} hint={d.auth.phoneHint}>
         <div className="flex" dir="ltr">
           <span className="flex items-center rounded-s-xl border border-e-0 border-slate-300 bg-slate-50 px-3 text-sm text-slate-600">+216</span>
-          <Input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel-national" placeholder="22 123 456" className="rounded-s-none" aria-invalid={!!err("phone")} />
+          <Input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel-national" required maxLength={20} placeholder="22 123 456" className="rounded-s-none" aria-invalid={!!err("phone")} />
         </div>
       </Field>
       <Field label={d.auth.password} htmlFor="password" error={err("password")} hint={d.auth.passwordRules}>

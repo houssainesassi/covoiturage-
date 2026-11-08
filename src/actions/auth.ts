@@ -37,7 +37,7 @@ export async function registerAction(_: ActionResult | null, fd: FormData): Prom
   const raw = {
     fullName: fd.get("fullName"),
     email: fd.get("email"),
-    phone: fd.get("phone") || undefined,
+    phone: fd.get("phone") ?? "",
     password: fd.get("password"),
     confirm: fd.get("confirm"),
     terms: fd.get("terms"),
@@ -47,17 +47,15 @@ export async function registerAction(_: ActionResult | null, fd: FormData): Prom
     const fields: Record<string, ReturnType<typeof toErrorCode>> = {};
     for (const issue of parsed.error.issues) {
       const k = String(issue.path[0]);
-      fields[k] = k === "email" ? "invalid_email" : k === "password" ? "weak_password" : k === "terms" ? "terms_required" : "validation";
+      fields[k] = k === "email" ? "invalid_email" : k === "password" ? "weak_password" : k === "terms" ? "terms_required" : k === "phone" ? "phone_required" : "validation";
     }
+    if (!fields.phone && !normalizeTunisianPhone(String(raw.phone))) fields.phone = "invalid_phone";
     return fail(fields.terms ?? "validation", fields);
   }
   const v = parsed.data;
   if (v.password !== v.confirm) return fail("password_mismatch", { confirm: "password_mismatch" });
-  let phone: string | null = null;
-  if (v.phone) {
-    phone = normalizeTunisianPhone(v.phone);
-    if (!phone) return fail("invalid_phone", { phone: "invalid_phone" });
-  }
+  const phone = normalizeTunisianPhone(v.phone);
+  if (!phone) return fail("invalid_phone", { phone: "invalid_phone" });
   const supabase = await createClient();
   const origin = await getOrigin();
   const next = safeNext(String(fd.get("next") ?? ""));
@@ -74,7 +72,9 @@ export async function registerAction(_: ActionResult | null, fd: FormData): Prom
   if (data.user && data.user.identities?.length === 0) return fail("email_taken", { email: "email_taken" });
   if (data.session) {
     revalidatePath("/", "layout");
-    redirect(next);
+    // New accounts must add an avatar (and confirm name/phone) before using the app.
+    const after = safeNext(String(fd.get("next") ?? ""), "/");
+    redirect(`/auth/complete-profile?next=${encodeURIComponent(after)}`);
   }
   redirect(`/auth/check-email?email=${encodeURIComponent(v.email)}`);
 }

@@ -427,6 +427,11 @@ export type Database = {
         Args: Record<string, never>;
         Returns: { conversation_id: string; unread: number }[];
       };
+      my_profile_complete: { Args: Record<string, never>; Returns: boolean };
+      get_driver_phones: {
+        Args: { p_driver_ids: string[] };
+        Returns: { driver_id: string; phone: string }[];
+      };
       get_trip_contacts: {
         Args: { p_trip_id: string };
         Returns: { user_id: string; full_name: string; phone: string | null; role: string; plate_number: string | null }[];

@@ -10,7 +10,7 @@ const KNOWN = new Set<string>([
   "invalid_vehicle", "seats_exceed_vehicle", "seats_below_booked", "route_locked", "invalid_photo_path",
   "invalid_vehicle_year", "invalid_rating", "trip_not_completed", "review_window_closed", "not_participant",
   "duplicate_review", "cannot_moderate_self", "user_not_found", "report_not_found", "review_not_found",
-  "message_not_found",
+  "message_not_found", "profile_incomplete", "avatar_required", "phone_required",
 ]);
 
 type AnyError = { message?: string; code?: string; status?: number } | null | undefined;

@@ -111,12 +111,20 @@ async function fails(p: Promise<unknown>): Promise<string> {
   }
 }
 
-async function createUser(pool: Pool, email: string, name: string, phone?: string) {
+let phoneSeq = 0;
+
+/** Signs a user up; by default also completes the mandatory profile (avatar + phone). */
+async function createUser(pool: Pool, email: string, name: string, phone?: string, { complete = true } = {}) {
   const r = await pool.query(
     "insert into auth.users (email, raw_user_meta_data) values ($1, $2) returning id",
     [email, JSON.stringify({ full_name: name, phone, locale: "fr" })],
   );
-  return r.rows[0].id as string;
+  const id = r.rows[0].id as string;
+  if (complete) {
+    await pool.query("update public.profiles set avatar_path = id::text || '/avatar.jpg' where id = $1", [id]);
+    await pool.query("update public.profile_private set phone = coalesce(phone, $2) where id = $1", [id, `+2169${String(++phoneSeq).padStart(7, "0")}`]);
+  }
+  return id;
 }
 
 async function loc(pool: Pool, slug: string) {
@@ -183,7 +191,7 @@ async function run(pool: Pool) {
   const p1 = await createUser(pool, "p1@test.tn", "Amel P1", "+21655111222");
   const p2 = await createUser(pool, "p2@test.tn", "Youssef P2");
   const admin = await createUser(pool, "admin@test.tn", "Admin");
-  const badPhone = await createUser(pool, "bad@test.tn", "Bad Phone", "12345");
+  const badPhone = await createUser(pool, "bad@test.tn", "Bad Phone", "12345", { complete: false });
   ok("profile auto-created on signup", (await pool.query("select 1 from public.profiles where id=$1", [driver])).rowCount === 1);
   ok("valid Tunisian phone stored privately",
     (await pool.query("select phone from public.profile_private where id=$1", [driver])).rows[0].phone === "+21622123456");
@@ -540,6 +548,41 @@ async function run(pool: Pool) {
   ok("user cannot upload into another user's folder", /row-level security/.test(e), e);
   const bucket = (await pool.query("select file_size_limit, allowed_mime_types from storage.buckets where id='avatars'")).rows[0];
   ok("avatar bucket restricts size & type", bucket.file_size_limit === "2097152" && bucket.allowed_mime_types.includes("image/webp"), bucket);
+  // -------------------------------------------------------------------------
+  console.log("\nProfile completion & public driver phones");
+  const fresh = await createUser(pool, "fresh@test.tn", "Nour Fresh", "+21698765432", { complete: false });
+  const noName = await createUser(pool, "noname@test.tn", "", "+21698765433", { complete: false });
+  const isComplete = async (u: string) => (await as(pool, u, (c) => c.query("select public.my_profile_complete() v"))).rows[0].v as boolean;
+  ok("new account without avatar is incomplete", (await isComplete(fresh)) === false);
+  e = await fails(publishTrip(pool, fresh));
+  ok("incomplete profile cannot publish a ride", /profile_incomplete/.test(e), e);
+  const openTrip = await publishTrip(pool, driver, { seats: 3 });
+  e = await fails(book(pool, fresh, openTrip, 1));
+  ok("incomplete profile cannot book a seat", /profile_incomplete/.test(e), e);
+  e = await fails(as(pool, fresh, (c) => c.query("update public.profiles set avatar_path = 'someone-else/x.jpg' where id = $1", [fresh])));
+  ok("avatar must live in the user's own folder", /check constraint|violates/.test(e), e);
+  await as(pool, fresh, (c) => c.query("update public.profiles set avatar_path = $1 || '/me.jpg' where id = $1::uuid", [fresh]));
+  ok("avatar + name + phone completes the profile", (await isComplete(fresh)) === true);
+  ok("completed profile can publish a ride", typeof (await publishTrip(pool, fresh)) === "string");
+  await as(pool, noName, (c) => c.query("update public.profiles set avatar_path = $1 || '/me.jpg' where id = $1::uuid", [noName]));
+  ok("empty name keeps the profile incomplete", (await isComplete(noName)) === false);
+  e = await fails(as(pool, fresh, (c) => c.query("update public.profiles set avatar_path = null where id = $1", [fresh])));
+  ok("avatar cannot be removed once set", /avatar_required/.test(e), e);
+  e = await fails(as(pool, fresh, (c) => c.query("update public.profile_private set phone = null where id = $1", [fresh])));
+  ok("phone cannot be removed once set", /phone_required/.test(e), e);
+  e = await fails(as(pool, fresh, (c) => c.query("update public.profile_private set phone = '+33612345678' where id = $1", [fresh])));
+  ok("non-Tunisian phone rejected by constraint", /check constraint/.test(e), e);
+  const phones = await as(pool, "anon", (c) => c.query("select driver_id, phone from public.get_driver_phones($1::uuid[])", [[driver, p1, fresh]]));
+  const phoneMap = new Map(phones.rows.map((r) => [r.driver_id, r.phone]));
+  ok("guests see the driver's phone on ride posts", phoneMap.get(driver) === "+21622123456" && phoneMap.get(fresh) === "+21698765432", phones.rows);
+  ok("passengers' phones stay private", !phoneMap.has(p1), phones.rows);
+  e = await fails(as(pool, "anon", (c) => c.query("select phone from public.profile_private")));
+  ok("guests still cannot read profile_private", /permission denied/.test(e), e);
+  e = await fails(as(pool, p1, (c) => c.query("select public.is_profile_complete($1)", [driver])));
+  ok("is_profile_complete is internal only", /permission denied/.test(e), e);
+  e = await fails(as(pool, "anon", (c) => c.query("select public.my_profile_complete()")));
+  ok("guests cannot call my_profile_complete", /permission denied/.test(e), e);
+
   // -------------------------------------------------------------------------
   console.log("\nHistorical demo data");
   const seed = readFileSync(path.join(root, "supabase/seed/demo_history.sql"), "utf8");

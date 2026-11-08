@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Car, Star } from "lucide-react";
+import { Car, Phone, Star } from "lucide-react";
+import { formatTunisianPhone } from "@/lib/phone";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge, DemoBadge } from "@/components/ui/badge";
 import type { Dictionary } from "@/lib/i18n/dictionaries/en";
@@ -18,7 +19,9 @@ export type TripCardData = {
   origin_address: string;
   destination_address: string;
   duration_min: number | null;
+  driver_id?: string;
   driver_name: string;
+  driver_phone?: string | null;
   driver_avatar_path: string | null;
   driver_rating: number;
   driver_rating_count: number;
@@ -72,6 +75,7 @@ export function TripCard({ trip, locations, d, locale, showDate = true }: { trip
           </p>
         </div>
         {trip.vehicle && <p className="hidden items-center gap-1.5 text-xs text-slate-500 sm:flex"><Car className="size-4" aria-hidden />{trip.vehicle}</p>}
+        {trip.driver_phone && <p className="flex shrink-0 items-center gap-1.5 text-sm font-semibold text-brand-700" dir="ltr"><Phone className="size-4" aria-hidden />{formatTunisianPhone(trip.driver_phone)}</p>}
       </div>
     </Link>
   );

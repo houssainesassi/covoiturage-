@@ -18,23 +18,35 @@ export const registerSchema = z
   .object({
     fullName: trimmed(100).min(2),
     email: z.string().trim().toLowerCase().email(),
-    phone: z.string().trim().max(20).optional(),
+    phone: z.string().trim().min(1).max(20),
     password: passwordSchema,
     confirm: z.string(),
     terms: z.literal("on"),
   });
 
+/** Required Tunisian phone number, normalized to E.164 (+216XXXXXXXX). */
 export const phoneField = z
-  .string()
+  .string({ error: "phone_required" })
   .trim()
-  .max(20)
-  .optional()
+  .max(20, { error: "invalid_phone" })
   .transform((v, ctx) => {
-    if (!v) return null;
+    if (!v) {
+      ctx.addIssue({ code: "custom", message: "phone_required" });
+      return z.NEVER;
+    }
     const n = normalizeTunisianPhone(v);
-    if (!n) ctx.addIssue({ code: "custom", message: "invalid_phone" });
+    if (!n) {
+      ctx.addIssue({ code: "custom", message: "invalid_phone" });
+      return z.NEVER;
+    }
     return n;
   });
+
+export const completeProfileSchema = z.object({
+  fullName: trimmed(100).min(2),
+  phone: phoneField,
+  avatarPath: z.string().trim().max(200).optional().transform((v) => (v ? v : null)),
+});
 
 const coord = (min: number, max: number) => z.coerce.number().min(min).max(max);
 

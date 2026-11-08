@@ -7,7 +7,7 @@ import { getLocationMap } from "@/lib/locations";
 import { createClient } from "@/lib/supabase/server";
 import { fmt, formatDate, plural } from "@/lib/i18n/format";
 import { locName } from "@/lib/names";
-import { TRIP_CARD_SELECT, toCard } from "@/lib/queries";
+import { TRIP_CARD_SELECT, toCard, withDriverPhones } from "@/lib/queries";
 import { uuidSchema } from "@/lib/validation";
 import { Avatar } from "@/components/ui/avatar";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -42,6 +42,7 @@ export default async function UserPage({ params }: PageProps<"/users/[id]">) {
     supabase.from("trips").select(TRIP_CARD_SELECT).eq("driver_id", id).eq("status", "scheduled").gt("departure_at", new Date().toISOString()).order("departure_at").limit(6),
   ]);
   const { data: past } = await supabase.from("trips").select(TRIP_CARD_SELECT).eq("driver_id", id).eq("status", "completed").order("departure_at", { ascending: false }).limit(4);
+  const [upcomingCards, pastCards] = await Promise.all([withDriverPhones(supabase, (trips ?? []).map(toCard)), withDriverPhones(supabase, (past ?? []).map(toCard))]);
   const city = profile.city_id ? locs.get(profile.city_id) : null;
 
   return (
@@ -71,13 +72,13 @@ export default async function UserPage({ params }: PageProps<"/users/[id]">) {
       <section className="mt-8">
         <h2 className="mb-3 text-lg font-semibold">{d.profile.upcomingTrips}</h2>
         {(trips ?? []).length ? (
-          <div className="grid gap-4 md:grid-cols-2">{trips!.map((t) => <TripCard key={t.id} trip={toCard(t)} locations={locs} d={d} locale={locale} />)}</div>
+          <div className="grid gap-4 md:grid-cols-2">{upcomingCards.map((t) => <TripCard key={t.id} trip={t} locations={locs} d={d} locale={locale} />)}</div>
         ) : <p className="text-sm text-slate-500">{d.profile.noTrips}</p>}
       </section>
       {(past ?? []).length > 0 && (
         <section className="mt-8">
           <h2 className="mb-3 text-lg font-semibold">{d.profile.pastTrips}</h2>
-          <div className="grid gap-4 md:grid-cols-2">{past!.map((t) => <TripCard key={t.id} trip={toCard(t)} locations={locs} d={d} locale={locale} />)}</div>
+          <div className="grid gap-4 md:grid-cols-2">{pastCards.map((t) => <TripCard key={t.id} trip={t} locations={locs} d={d} locale={locale} />)}</div>
         </section>
       )}
       <Card className="mt-8">
