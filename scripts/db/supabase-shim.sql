@@ -4,6 +4,7 @@
 create role anon nologin noinherit;
 create role authenticated nologin noinherit;
 create role service_role nologin noinherit bypassrls;
+create role supabase_auth_admin nologin noinherit;
 
 grant usage on schema public to anon, authenticated, service_role;
 -- Supabase grants everything by default; migrations must tighten this.
@@ -17,6 +18,9 @@ grant usage on schema auth to anon, authenticated, service_role;
 create table auth.users (
   id uuid primary key default gen_random_uuid(),
   email text unique,
+  -- Supabase Auth stores phones without the leading '+', and keeps them unique.
+  phone text unique,
+  phone_confirmed_at timestamptz,
   raw_user_meta_data jsonb not null default '{}'::jsonb,
   email_confirmed_at timestamptz,
   last_sign_in_at timestamptz,

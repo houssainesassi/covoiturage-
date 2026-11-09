@@ -21,3 +21,24 @@ export function formatTunisianPhone(e164: string | null | undefined): string {
   const m = e164.match(/^\+216(\d{2})(\d{3})(\d{3})$/);
   return m ? `+216 ${m[1]} ${m[2]} ${m[3]}` : e164;
 }
+
+/**
+ * Lifetime of an SMS code. Must equal "SMS OTP Expiry" in Supabase Auth
+ * (Authentication > Providers > Phone). Only used to tell "expired" from "wrong".
+ */
+export const SMS_CODE_TTL_SECONDS = 300;
+
+/** Seconds between two SMS to the same user (Supabase's own minimum is 60). */
+export const SMS_RESEND_SECONDS = 60;
+
+type PhoneUser = { phone?: string | null; phone_confirmed_at?: string | null } | null | undefined;
+
+/**
+ * Verified = Supabase Auth confirmed the number by SMS code, and it is the number
+ * on the profile (the one passengers see). Same rule as public.is_phone_verified().
+ * Auth stores phones without the leading "+".
+ */
+export function isPhoneVerified(user: PhoneUser, profilePhone: string | null | undefined): boolean {
+  if (!user?.phone || !user.phone_confirmed_at || !profilePhone) return false;
+  return `+${user.phone.replace(/^\+/, "")}` === profilePhone;
+}

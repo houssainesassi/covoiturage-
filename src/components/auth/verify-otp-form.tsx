@@ -1,6 +1,7 @@
 "use client";
 import { startTransition, useActionState, useEffect, useRef, useState, type ClipboardEvent, type FormEvent, type KeyboardEvent } from "react";
-import { resendEmailOtpAction, verifyEmailOtpAction } from "@/actions/auth";
+import { resendEmailOtpAction, resendPhoneOtpAction, verifyEmailOtpAction, verifyPhoneOtpAction } from "@/actions/auth";
+import { SMS_CODE_TTL_SECONDS, SMS_RESEND_SECONDS } from "@/lib/phone";
 import { withNetworkError } from "@/lib/use-form-action";
 import { useI18n } from "@/lib/i18n/client";
 import { fmt } from "@/lib/i18n/format";
@@ -10,18 +11,26 @@ import { SubmitButton } from "@/components/ui/client";
 import type { ActionResult, ErrorCode } from "@/lib/errors";
 
 const LENGTH = 6;
-const RESEND_SECONDS = 60;
+const RESEND_SECONDS = SMS_RESEND_SECONDS;
 const EMPTY = Array<string>(LENGTH).fill("");
 
-const verify = withNetworkError(verifyEmailOtpAction);
-const resend = withNetworkError(resendEmailOtpAction);
+const actions = {
+  email: { verify: withNetworkError(verifyEmailOtpAction), resend: withNetworkError(resendEmailOtpAction) },
+  phone: { verify: withNetworkError(verifyPhoneOtpAction), resend: withNetworkError(resendPhoneOtpAction) },
+};
 
 /** Keeps digits only; Arabic keyboards type ٠-٩, which the server would refuse. */
 const toDigits = (s: string) =>
   s.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x0660)).replace(/\D/g, "");
 
-export function VerifyOtpForm({ email, next }: { email: string; next: string }) {
+/** 6-digit code screen for the email code (`email`) or the SMS code (`phone`, +216…). */
+export function VerifyOtpForm({ email, phone, next }: { email?: string; phone?: string; next: string }) {
   const { d } = useI18n();
+  const channel = phone ? "phone" : "email";
+  const target = { name: channel, value: (phone ?? email)! };
+  const { verify, resend } = actions[channel];
+  // When the current code was sent, to tell an expired SMS code from a wrong one.
+  const sentAt = useRef(0);
   const [digits, setDigits] = useState(EMPTY);
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
   const [resent, setResent] = useState(false);
@@ -31,7 +40,8 @@ export function VerifyOtpForm({ email, next }: { email: string; next: string }) 
   const [, dispatchVerify, verifying] = useActionState(async (prev: ActionResult | null, fd: FormData) => {
     const result = await verify(prev, fd);
     if (!result.ok) {
-      setError(result.error);
+      const expired = channel === "phone" && result.error === "otp_invalid" && sentAt.current > 0 && Date.now() - sentAt.current > SMS_CODE_TTL_SECONDS * 1000;
+      setError(expired ? "otp_expired" : result.error);
       setDigits(EMPTY);
       inputs.current[0]?.focus();
     }
@@ -44,11 +54,16 @@ export function VerifyOtpForm({ email, next }: { email: string; next: string }) 
     setError(result.ok ? null : result.error);
     if (result.ok || result.error === "rate_limited") setSecondsLeft(RESEND_SECONDS);
     if (result.ok) {
+      sentAt.current = Date.now();
       setDigits(EMPTY);
       inputs.current[0]?.focus();
     }
     return result;
   }, null);
+
+  useEffect(() => {
+    if (!sentAt.current) sentAt.current = Date.now();
+  }, []);
 
   useEffect(() => {
     if (secondsLeft <= 0) return;
@@ -61,7 +76,7 @@ export function VerifyOtpForm({ email, next }: { email: string; next: string }) 
     setResent(false);
     setError(null);
     const fd = new FormData();
-    fd.set("email", email);
+    fd.set(target.name, target.value);
     fd.set("next", next);
     fd.set("token", code);
     startTransition(() => dispatchVerify(fd));
@@ -112,7 +127,7 @@ export function VerifyOtpForm({ email, next }: { email: string; next: string }) 
 
   const onResend = () => {
     const fd = new FormData();
-    fd.set("email", email);
+    fd.set(target.name, target.value);
     startTransition(() => dispatchResend(fd));
   };
 
@@ -139,15 +154,15 @@ export function VerifyOtpForm({ email, next }: { email: string; next: string }) 
             maxLength={LENGTH}
             readOnly={verifying}
             aria-label={fmt(d.auth.verifyDigit, { n: i + 1 })}
-            aria-invalid={error === "otp_invalid"}
+            aria-invalid={error === "otp_invalid" || error === "otp_expired"}
             className="min-w-0 max-w-12 px-0! text-center text-xl! font-bold"
           />
         ))}
       </div>
-      <p className="text-center text-sm text-slate-500">{d.auth.verifyHint}</p>
+      <p className="text-center text-sm text-slate-500">{channel === "phone" ? d.auth.smsHint : d.auth.verifyHint}</p>
       {error && <FormError message={d.errors[error]} />}
       {resent && <p role="status" className="rounded-xl bg-brand-50 p-3 text-sm text-brand-800">{d.auth.codeResent}</p>}
-      <SubmitButton pending={verifying} size="lg" className="w-full">{d.auth.verifyCta}</SubmitButton>
+      <SubmitButton pending={verifying} size="lg" className="w-full">{channel === "phone" ? d.auth.verifyPhoneCta : d.auth.verifyCta}</SubmitButton>
       <Button type="button" variant="ghost" className="w-full" disabled={secondsLeft > 0} loading={resending} onClick={onResend}>
         {secondsLeft > 0 ? fmt(d.auth.resendIn, { seconds: secondsLeft }) : d.auth.resendCode}
       </Button>

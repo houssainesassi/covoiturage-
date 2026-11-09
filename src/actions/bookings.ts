@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { fail, toErrorCode, type ActionResult } from "@/lib/errors";
 import { bookingSchema } from "@/lib/validation";
+import { isPhoneVerified } from "@/lib/phone";
 import { authed, result } from "./_util";
 
 export async function requestBookingAction(_: ActionResult | null, fd: FormData): Promise<ActionResult> {
@@ -9,6 +10,12 @@ export async function requestBookingAction(_: ActionResult | null, fd: FormData)
   if ("error" in ctx) return ctx.error;
   const parsed = bookingSchema.safeParse({ tripId: fd.get("tripId"), seats: fd.get("seats"), message: fd.get("message") || undefined });
   if (!parsed.success) return fail("invalid_seats");
+  // Also enforced by the booking trigger (migration 14).
+  const [{ data: u }, { data: priv }] = await Promise.all([
+    ctx.supabase.auth.getUser(),
+    ctx.supabase.from("profile_private").select("phone").eq("id", ctx.userId).maybeSingle(),
+  ]);
+  if (!isPhoneVerified(u.user, priv?.phone)) return fail("phone_unverified");
   // Price, availability and permissions are all enforced inside request_booking().
   const { error } = await ctx.supabase.rpc("request_booking", {
     p_trip_id: parsed.data.tripId,

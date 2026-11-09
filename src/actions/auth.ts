@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { fail, toErrorCode, type ActionResult } from "@/lib/errors";
 import { loginSchema, passwordSchema, registerSchema } from "@/lib/validation";
-import { normalizeTunisianPhone } from "@/lib/phone";
+import { isPhoneVerified, normalizeTunisianPhone } from "@/lib/phone";
+import { sendPhoneCode, startPhoneVerification, verifyPhoneUrl } from "@/lib/phone-otp";
+import { savePrivateProfile } from "./_util";
 import { getOrigin, getClientIp } from "@/lib/request";
 import { rateLimit } from "@/lib/rate-limit";
 import { safeNext } from "@/lib/utils";
@@ -31,7 +33,7 @@ export async function loginAction(_: ActionResult | null, fd: FormData): Promise
   const parsed = loginSchema.safeParse({ email: fd.get("email"), password: fd.get("password") });
   if (!parsed.success) return fail("invalid_credentials");
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) {
     const code = toErrorCode(error);
     if (code !== "email_not_confirmed") return fail(code);
@@ -40,7 +42,11 @@ export async function loginAction(_: ActionResult | null, fd: FormData): Promise
     redirect(verifyUrl(parsed.data.email, safeNext(String(fd.get("next") ?? ""), "/")));
   }
   revalidatePath("/", "layout");
-  redirect(safeNext(String(fd.get("next") ?? "")));
+  const next = safeNext(String(fd.get("next") ?? ""));
+  // Existing accounts keep working; an unverified number is offered the SMS step.
+  const { data: priv } = await supabase.from("profile_private").select("phone").eq("id", data.user.id).maybeSingle();
+  if (!isPhoneVerified(data.user, priv?.phone)) redirect(verifyPhoneUrl(next));
+  redirect(next);
 }
 
 export async function registerAction(_: ActionResult | null, fd: FormData): Promise<ActionResult> {
@@ -92,7 +98,7 @@ export async function registerAction(_: ActionResult | null, fd: FormData): Prom
     // A session here means Supabase auto-confirmed the account and sent no code.
     console.error("[auth] signup skipped email verification: enable Confirm email in Supabase");
     revalidatePath("/", "layout");
-    redirect(`/auth/complete-profile?next=${encodeURIComponent(after)}`);
+    redirect(await startPhoneVerification(supabase, data.session.user, phone, after));
   }
   redirect(verifyUrl(v.email, after));
 }
@@ -106,12 +112,73 @@ export async function verifyEmailOtpAction(_: ActionResult | null, fd: FormData)
   // Per-address limit too, so guessing one account's code from many IPs stays slow.
   if (!rateLimit(`verify-email:${email.data}`, 10, OTP_WINDOW_MS)) return fail("rate_limited");
   const supabase = await createClient();
-  const { error } = await supabase.auth.verifyOtp({ email: email.data, token: token.data, type: "email" });
+  const { data, error } = await supabase.auth.verifyOtp({ email: email.data, token: token.data, type: "email" });
   if (error) return fail(toErrorCode(error));
   revalidatePath("/", "layout");
-  // Offer the required photo now; it can wait until the first ride they publish or book.
+  // Next step: the SMS code for the number given at sign-up.
   const after = safeNext(String(fd.get("next") ?? ""), "/");
-  redirect(`/auth/complete-profile?verified=1&next=${encodeURIComponent(after)}`);
+  if (!data.user) redirect(verifyPhoneUrl(after, { emailVerified: true }));
+  const phone = normalizeTunisianPhone(String(data.user.user_metadata?.phone ?? ""));
+  redirect(await startPhoneVerification(supabase, data.user, phone, after, true));
+}
+
+const phoneInput = (fd: FormData) => normalizeTunisianPhone(String(fd.get("phone") ?? ""));
+
+async function signedInUser() {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  return { supabase, user: data.user };
+}
+
+/** Phone step, number screen: texts a code, then shows the code screen. */
+export async function sendPhoneOtpAction(_: ActionResult | null, fd: FormData): Promise<ActionResult> {
+  const blocked = await guard("sms", 10);
+  if (blocked) return blocked;
+  const phone = phoneInput(fd);
+  if (!phone) return fail("invalid_phone", { phone: "invalid_phone" });
+  const { supabase, user } = await signedInUser();
+  if (!user) return fail("not_authenticated");
+  const next = safeNext(String(fd.get("next") ?? ""), "/");
+  const sent = await sendPhoneCode(supabase, user, phone);
+  if (!sent.ok) return fail(sent.error, { phone: sent.error });
+  if (sent.alreadyVerified) {
+    // Same number as the verified one: just make it the profile number again.
+    await savePrivateProfile(supabase, user.id, { phone });
+    revalidatePath("/", "layout");
+    redirect(`/auth/complete-profile?phone_verified=1&next=${encodeURIComponent(next)}`);
+  }
+  redirect(verifyPhoneUrl(next, { phone, sent: true }));
+}
+
+export async function resendPhoneOtpAction(_: ActionResult | null, fd: FormData): Promise<ActionResult> {
+  const blocked = await guard("sms", 10);
+  if (blocked) return blocked;
+  const phone = phoneInput(fd);
+  if (!phone) return fail("invalid_phone");
+  const { supabase, user } = await signedInUser();
+  if (!user) return fail("not_authenticated");
+  const sent = await sendPhoneCode(supabase, user, phone);
+  return sent.ok ? { ok: true } : fail(sent.error);
+}
+
+export async function verifyPhoneOtpAction(_: ActionResult | null, fd: FormData): Promise<ActionResult> {
+  const blocked = await guard("verify", 20);
+  if (blocked) return blocked;
+  const phone = phoneInput(fd);
+  const token = z.string().regex(/^\d{6}$/).safeParse(fd.get("token"));
+  if (!phone || !token.success) return fail("otp_invalid");
+  const { supabase, user } = await signedInUser();
+  if (!user) return fail("not_authenticated");
+  // Per-account and per-number limits, so guessing a code from many IPs stays slow.
+  if (!rateLimit(`verify-phone:${user.id}`, 10, OTP_WINDOW_MS) || !rateLimit(`verify-phone:${phone}`, 10, OTP_WINDOW_MS)) return fail("rate_limited");
+  const { error } = await supabase.auth.verifyOtp({ phone, token: token.data, type: "phone_change" });
+  if (error) return fail(toErrorCode(error));
+  // Migration 14 copies the verified number to the profile too; this covers databases without it.
+  const { error: saveError } = await savePrivateProfile(supabase, user.id, { phone });
+  if (saveError) console.error("[auth] verified phone not copied to the profile", saveError.code);
+  revalidatePath("/", "layout");
+  const next = safeNext(String(fd.get("next") ?? ""), "/");
+  redirect(`/auth/complete-profile?phone_verified=1&next=${encodeURIComponent(next)}`);
 }
 
 export async function resendEmailOtpAction(_: ActionResult | null, fd: FormData): Promise<ActionResult> {

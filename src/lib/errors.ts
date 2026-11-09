@@ -10,7 +10,7 @@ const KNOWN = new Set<string>([
   "invalid_vehicle", "seats_exceed_vehicle", "seats_below_booked", "route_locked", "invalid_photo_path",
   "invalid_vehicle_year", "invalid_rating", "trip_not_completed", "review_window_closed", "not_participant",
   "duplicate_review", "cannot_moderate_self", "user_not_found", "report_not_found", "review_not_found",
-  "message_not_found", "profile_incomplete", "avatar_required", "phone_required",
+  "message_not_found", "profile_incomplete", "avatar_required", "phone_required", "phone_unverified",
 ]);
 
 type AnyError = { name?: string; message?: string; code?: string; status?: number } | null | undefined;
@@ -27,12 +27,16 @@ export function toErrorCode(error: AnyError): ErrorCode {
     // Supabase Auth reports wrong, expired and already-used codes with this same error.
     case "otp_expired": return "otp_invalid";
     case "email_address_not_authorized": return "email_send_failed";
+    case "phone_exists": return "phone_taken";
+    case "sms_send_failed":
+    case "phone_provider_disabled": return "sms_send_failed";
     case "user_already_exists":
     case "email_exists": return "email_taken";
     case "weak_password": return "weak_password";
     case "same_password": return "same_password";
     case "over_request_rate_limit":
-    case "over_email_send_rate_limit": return "rate_limited";
+    case "over_email_send_rate_limit":
+    case "over_sms_send_rate_limit": return "rate_limited";
     case "23514": // check_violation
     case "23502":
     case "22P02":
@@ -45,6 +49,7 @@ export function toErrorCode(error: AnyError): ErrorCode {
   if (/token has expired|expired or is invalid/i.test(msg)) return "otp_invalid";
   if (/already registered/i.test(msg)) return "email_taken";
   if (/error sending (confirmation|recovery|magic link)? ?email/i.test(msg)) return "email_send_failed";
+  if (/error sending (sms|otp)|unsupported phone provider/i.test(msg)) return "sms_send_failed";
   if (/row-level security|permission denied/i.test(msg)) return "forbidden";
   console.error("[unmapped error]", error);
   return "unknown";

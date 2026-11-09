@@ -1,6 +1,7 @@
 "use client";
 import { useFormAction } from "@/lib/use-form-action";
 import { useEffect, useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -17,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/ui/client";
 import { initials } from "@/lib/utils";
 
-export function ProfileForm({ profile, phone, dob, locations }: { profile: Profile; phone: string; dob: string; locations: LocationLite[] }) {
+export function ProfileForm({ profile, phone, phoneVerified, dob, locations }: { profile: Profile; phone: string; phoneVerified: boolean; dob: string; locations: LocationLite[] }) {
   const { d, locale } = useI18n();
   const router = useRouter();
   const [state, action, pending] = useFormAction(updateProfileAction);
@@ -70,6 +71,9 @@ export function ProfileForm({ profile, phone, dob, locations }: { profile: Profi
                 <span className="flex items-center rounded-s-xl border border-e-0 border-slate-300 bg-slate-50 px-3 text-sm text-slate-600">+216</span>
                 <Input id="phone" name="phone" type="tel" inputMode="tel" defaultValue={phone.replace(/^\+216/, "")} required placeholder="22 123 456" className="rounded-s-none" aria-invalid={!!err("phone")} />
               </div>
+              {phone && (phoneVerified
+                ? <p className="mt-1.5 text-sm font-medium text-brand-700">✓ {d.profile.phoneVerifiedBadge}</p>
+                : <p className="mt-1.5 text-sm text-slate-600">{d.profile.phoneNotVerified} · <Link href="/auth/verify-phone?next=%2Fdashboard%2Fprofile" className="font-semibold text-brand-700 underline">{d.profile.verifyNow}</Link></p>)}
             </Field>
             <Field label={d.profile.city} htmlFor="cityId" optional={d.common.optional}>
               <Select id="cityId" name="cityId" defaultValue={profile.city_id ?? ""}>

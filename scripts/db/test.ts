@@ -126,6 +126,11 @@ async function createUser(pool: Pool, email: string, name: string, phone?: strin
     await pool.query("update public.profiles set avatar_path = id::text || '/avatar.jpg' where id = $1", [id]);
     await pool.query("insert into storage.objects (bucket_id, name, owner) values ('avatars', $1 || '/avatar.jpg', $1::uuid)", [id]);
     await pool.query("update public.profile_private set phone = coalesce(phone, $2) where id = $1", [id, `+2169${String(++phoneSeq).padStart(7, "0")}`]);
+    // Same as a completed SMS code: Auth confirms the profile number.
+    await pool.query(
+      "update auth.users u set phone = substr(pp.phone, 2), phone_confirmed_at = now() from public.profile_private pp where pp.id = u.id and u.id = $1",
+      [id],
+    );
   }
   return id;
 }
@@ -596,6 +601,11 @@ async function run(pool: Pool) {
   ok("a fake avatar path cannot be used to book", /profile_incomplete/.test(e), e);
   await as(pool, fresh, (c) => c.query("insert into storage.objects (bucket_id, name, owner) values ('avatars', $1 || '/me.jpg', $1::uuid)", [fresh]));
   ok("avatar + name + phone completes the profile", (await isComplete(fresh)) === true);
+  e = await fails(publishTrip(pool, fresh));
+  ok("a complete profile with an unverified phone cannot publish", /phone_unverified/.test(e), e);
+  e = await fails(book(pool, fresh, openTrip, 1));
+  ok("a complete profile with an unverified phone cannot book", /phone_unverified/.test(e), e);
+  await pool.query("update auth.users set phone = '21698765432', phone_confirmed_at = now() where id = $1", [fresh]);
   ok("completed profile can publish a ride", typeof (await publishTrip(pool, fresh)) === "string");
   await as(pool, fresh, (c) => c.query("delete from storage.objects where bucket_id = 'avatars' and name = $1 || '/me.jpg'", [fresh]));
   e = await fails(publishTrip(pool, fresh));
@@ -624,6 +634,38 @@ async function run(pool: Pool) {
   ok("cancelling the booking removes phone access", (await contactsFor(fresh, openTrip)).length === 0);
   const directRead = await as(pool, p2, (c) => c.query("select phone from public.profile_private where id = $1", [driver]));
   ok("a driver's phone cannot be read directly", directRead.rowCount === 0, directRead.rows);
+
+  // -------------------------------------------------------------------------
+  console.log("\nPhone verification (SMS code)");
+  const verified = async (u: string) => (await pool.query("select public.is_phone_verified($1) v", [u])).rows[0].v as boolean;
+  const smsUser = await createUser(pool, "sms@test.tn", "Sms User", "+21620111222");
+  ok("a confirmed number that matches the profile counts as verified", (await verified(smsUser)) === true);
+  await as(pool, smsUser, (c) => c.query("update public.profile_private set phone = '+21620999888' where id = $1", [smsUser]));
+  ok("changing the profile number needs a new code", (await verified(smsUser)) === false);
+  e = await fails(publishTrip(pool, smsUser));
+  ok("an unverified new number cannot publish", /phone_unverified/.test(e), e);
+  // What Supabase Auth writes when verifyOtp({ type: 'phone_change' }) succeeds.
+  await pool.query("update auth.users set phone = '21620999888', phone_confirmed_at = now() where id = $1", [smsUser]);
+  ok("a verified code makes the new number the profile number", (await pool.query("select phone from public.profile_private where id = $1", [smsUser])).rows[0].phone === "+21620999888");
+  ok("and the user is verified again", (await verified(smsUser)) === true);
+  ok("and can publish again", typeof (await publishTrip(pool, smsUser)) === "string");
+  const unconfirmed = await createUser(pool, "unconf@test.tn", "Unconfirmed", "+21620333444");
+  await pool.query("update auth.users set phone = null, phone_confirmed_at = null where id = $1", [unconfirmed]);
+  ok("a number without a confirmed code is not verified", (await verified(unconfirmed)) === false);
+  e = await fails(pool.query("update auth.users set phone = '21620999888', phone_confirmed_at = now() where id = $1", [unconfirmed]));
+  ok("a number verified on one account cannot be verified on another", /unique|duplicate/.test(e), e);
+  ok("the other account keeps its own profile number", (await pool.query("select phone from public.profile_private where id = $1", [unconfirmed])).rows[0].phone === "+21620333444");
+  await pool.query("update auth.users set phone = '33612345678', phone_confirmed_at = now() where id = $1", [unconfirmed]);
+  ok("a confirmed non-Tunisian number is never copied to the profile", (await pool.query("select phone from public.profile_private where id = $1", [unconfirmed])).rows[0].phone === "+21620333444" && (await verified(unconfirmed)) === false);
+  e = await fails(as(pool, smsUser, (c) => c.query("select public.is_phone_verified($1)", [smsUser])));
+  ok("users cannot call is_phone_verified directly", /permission denied/.test(e), e);
+  const hook = async (user: object) => (await pool.query("select public.hook_before_user_created($1::jsonb) r", [JSON.stringify({ metadata: {}, user })])).rows[0].r;
+  ok("the signup hook refuses a phone-only signup", (await hook({ phone: "21620111222", email: "" })).error?.http_code === 403);
+  ok("the signup hook refuses a signup with no email field", (await hook({ phone: "21620111222" })).error?.http_code === 403);
+  ok("the signup hook allows an email signup", JSON.stringify(await hook({ email: "new@test.tn", phone: "" })) === "{}");
+  e = await fails(as(pool, "anon", (c) => c.query("select public.hook_before_user_created('{}'::jsonb)")));
+  ok("guests cannot call the signup hook", /permission denied/.test(e), e);
+  ok("Auth can call the signup hook", (await pool.query("select has_function_privilege('supabase_auth_admin', 'public.hook_before_user_created(jsonb)', 'execute') v")).rows[0].v === true);
 
   const samePhone = ["22 123 456", "+216 22 123 456", "00216 22 123 456", "216 22 123 456", "22-123-456"];
   ok("every accepted input format is stored the same way", samePhone.every((v) => normalizeTunisianPhone(v) === "+21622123456"), samePhone.map(normalizeTunisianPhone));
