@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, Car, Phone, Star, Users } from "lucide-react";
-import { formatTunisianPhone } from "@/lib/phone";
+import { CalendarDays, Car, Star, Users } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge, DemoBadge } from "@/components/ui/badge";
 import { buttonClass } from "@/components/ui/button";
@@ -23,7 +22,6 @@ export type TripCardData = {
   duration_min: number | null;
   driver_id?: string;
   driver_name: string;
-  driver_phone?: string | null;
   driver_avatar_path: string | null;
   driver_rating: number;
   driver_rating_count: number;
@@ -96,11 +94,6 @@ export function TripCard({ trip, locations, d, locale }: { trip: TripCardData; l
           <Link href={bookable ? `${href}#book` : href} className={buttonClass(bookable ? "primary" : "outline", "md", "min-w-32 flex-1 text-base")}>
             {bookable ? d.trip.bookNow : d.trip.viewDetails}
           </Link>
-          {trip.driver_phone && open && (
-            <a href={`tel:${trip.driver_phone}`} aria-label={`${d.trip.callDriver}: ${formatTunisianPhone(trip.driver_phone)}`} className={buttonClass("secondary", "md", "flex-1")} dir="ltr">
-              <Phone className="size-4" aria-hidden />{formatTunisianPhone(trip.driver_phone)}
-            </a>
-          )}
         </div>
       </div>
     </article>

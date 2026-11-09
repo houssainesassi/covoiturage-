@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n/client";
 import { fmt, formatDuration, formatPrice, plural } from "@/lib/i18n/format";
 import type { LocationLite } from "@/lib/location-lite";
 import { formatTunisianPhone } from "@/lib/phone";
+import { vehicleName } from "@/lib/names";
 import { fetchRoute, suggestPrice, type LatLng } from "@/lib/routing";
 import { LocationPicker } from "@/components/map";
 import { LocationCombobox } from "@/components/search/location-combobox";
@@ -16,7 +17,7 @@ import { Field, FormError, Input, Select, Textarea } from "@/components/ui/form"
 import { SubmitButton } from "@/components/ui/client";
 import type { LuggageSize } from "@/lib/supabase/database.types";
 
-export type TripFormVehicle = { id: string; brand: string; model: string; seats: number; is_active: boolean };
+export type TripFormVehicle = { id: string; brand: string | null; model: string; seats: number; is_active: boolean };
 export type TripFormInitial = {
   originId: string; destinationId: string; originAddress: string; destinationAddress: string;
   origin: LatLng; destination: LatLng; date: string; time: string; seats: number; price: number;
@@ -130,18 +131,18 @@ export function TripForm({ tripId, locations, vehicles, initial, bookedSeats = 0
         <div className="space-y-4 p-5 sm:p-6">
           <Field label={d.tripForm.vehicleSelect} htmlFor="vehicleId">
             <Select id="vehicleId" name="vehicleId" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
-              {activeVehicles.map((v) => <option key={v.id} value={v.id}>{v.brand} {v.model} · {plural(d.units.seats, v.seats, locale)}</option>)}
+              {activeVehicles.map((v) => <option key={v.id} value={v.id}>{vehicleName(v)} · {plural(d.units.seats, v.seats, locale)}</option>)}
               <option value="new">{d.tripForm.newVehicle}</option>
             </Select>
           </Field>
           {vehicleId === "new" && (
             <div className="grid gap-4 rounded-2xl bg-sand-100 p-4 sm:grid-cols-2">
               <p className="font-semibold sm:col-span-2">{d.tripForm.newVehicleTitle}</p>
-              <Field label={d.vehicles.type} htmlFor="vType"><Select id="vType" name="vType" defaultValue="sedan">{Object.entries(d.vehicles.types).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Select></Field>
+              <Field label={d.vehicles.type} htmlFor="vType" optional={d.common.optional}><Select id="vType" name="vType" defaultValue=""><option value="">—</option>{Object.entries(d.vehicles.types).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Select></Field>
               <Field label={d.vehicles.seats} htmlFor="vSeats" error={err("vSeats")}><Select id="vSeats" name="vSeats" defaultValue="4">{[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n}</option>)}</Select></Field>
-              <Field label={d.vehicles.brand} htmlFor="vBrand" error={err("vBrand")}><Input id="vBrand" name="vBrand" required maxLength={50} placeholder="Peugeot" /></Field>
+              <Field label={d.vehicles.brand} htmlFor="vBrand" optional={d.common.optional} error={err("vBrand")}><Input id="vBrand" name="vBrand" maxLength={50} placeholder="Peugeot" /></Field>
               <Field label={d.vehicles.model} htmlFor="vModel" error={err("vModel")}><Input id="vModel" name="vModel" required maxLength={50} placeholder="301" /></Field>
-              <Field label={d.vehicles.color} htmlFor="vColor" error={err("vColor")}><Input id="vColor" name="vColor" required maxLength={30} /></Field>
+              <Field label={d.vehicles.color} htmlFor="vColor" optional={d.common.optional} error={err("vColor")}><Input id="vColor" name="vColor" maxLength={30} /></Field>
               <Field label={d.vehicles.year} htmlFor="vYear" optional={d.common.optional}><Input id="vYear" name="vYear" type="number" min={1970} max={new Date().getFullYear() + 1} /></Field>
               <Field label={d.vehicles.plate} htmlFor="vPlate" hint={d.vehicles.plateHint} optional={d.common.optional} className="sm:col-span-2"><Input id="vPlate" name="vPlate" maxLength={20} placeholder="215 تونس 1234" /></Field>
             </div>

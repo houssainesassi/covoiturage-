@@ -10,7 +10,7 @@ export async function saveVehicleAction(vehicleId: string | null, _: ActionResul
   if ("error" in ctx) return ctx.error;
   const { supabase, userId } = ctx;
   const parsed = vehicleSchema.safeParse({
-    type: fd.get("type"), brand: fd.get("brand"), model: fd.get("model"), color: fd.get("color"),
+    type: fd.get("type"), brand: fd.get("brand") || undefined, model: fd.get("model"), color: fd.get("color") || undefined,
     year: fd.get("year") || undefined, seats: fd.get("seats"), plate: fd.get("plate") || undefined,
   });
   if (!parsed.success) {

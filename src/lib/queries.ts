@@ -1,6 +1,6 @@
+import { vehicleName } from "@/lib/names";
 import "server-only";
 import type { TripCardData } from "@/components/trips/trip-card";
-import type { ServerSupabase } from "@/lib/supabase/server";
 
 /** Columns for trip cards (plate_number deliberately excluded). */
 export const TRIP_CARD_SELECT =
@@ -19,7 +19,7 @@ type Row = {
   is_demo?: boolean;
   status?: "scheduled" | "cancelled" | "completed";
   driver: { id: string; full_name: string; avatar_path: string | null; rating_avg: number; rating_count: number } | null;
-  vehicle: { brand: string; model: string; color: string } | null;
+  vehicle: { brand: string | null; model: string; color: string | null } | null;
 };
 
 export function toCard(r: Row): TripCardData {
@@ -38,17 +38,9 @@ export function toCard(r: Row): TripCardData {
     driver_avatar_path: r.driver?.avatar_path ?? null,
     driver_rating: Number(r.driver?.rating_avg ?? 0),
     driver_rating_count: r.driver?.rating_count ?? 0,
-    vehicle: r.vehicle ? `${r.vehicle.brand} ${r.vehicle.model}` : null,
+    vehicle: r.vehicle ? vehicleName(r.vehicle) : null,
     isDemo: r.is_demo ?? false,
     status: r.status,
   };
 }
 
-/** Adds the drivers' public phone numbers (shown on every ride post). */
-export async function withDriverPhones<T extends { driver_id?: string }>(supabase: ServerSupabase, cards: T[]): Promise<(T & { driver_phone: string | null })[]> {
-  const ids = [...new Set(cards.map((c) => c.driver_id).filter((id): id is string => !!id))];
-  if (!ids.length) return cards.map((c) => ({ ...c, driver_phone: null }));
-  const { data } = await supabase.rpc("get_driver_phones", { p_driver_ids: ids });
-  const byId = new Map((data ?? []).map((r) => [r.driver_id, r.phone]));
-  return cards.map((c) => ({ ...c, driver_phone: (c.driver_id && byId.get(c.driver_id)) || null }));
-}

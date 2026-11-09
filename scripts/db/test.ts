@@ -13,6 +13,8 @@ import { Pool, type PoolClient } from "pg";
 import { readdirSync, readFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { TN_PHONE_REGEX, normalizeTunisianPhone } from "../../src/lib/phone";
+import { vehicleSchema } from "../../src/lib/validation";
 
 const root = path.resolve(__dirname, "../..");
 const PORT = 54329 + Math.floor(Math.random() * 500);
@@ -116,12 +118,13 @@ let phoneSeq = 0;
 /** Signs a user up; by default also completes the mandatory profile (avatar + phone). */
 async function createUser(pool: Pool, email: string, name: string, phone?: string, { complete = true } = {}) {
   const r = await pool.query(
-    "insert into auth.users (email, raw_user_meta_data) values ($1, $2) returning id",
+    "insert into auth.users (email, raw_user_meta_data, email_confirmed_at) values ($1, $2, now()) returning id",
     [email, JSON.stringify({ full_name: name, phone, locale: "fr" })],
   );
   const id = r.rows[0].id as string;
   if (complete) {
     await pool.query("update public.profiles set avatar_path = id::text || '/avatar.jpg' where id = $1", [id]);
+    await pool.query("insert into storage.objects (bucket_id, name, owner) values ('avatars', $1 || '/avatar.jpg', $1::uuid)", [id]);
     await pool.query("update public.profile_private set phone = coalesce(phone, $2) where id = $1", [id, `+2169${String(++phoneSeq).padStart(7, "0")}`]);
   }
   return id;
@@ -235,6 +238,17 @@ async function run(pool: Pool) {
   ok("cannot create a vehicle for another user", /row-level security/.test(e), e);
   e = await fails(as(pool, "anon", (c) => c.query("select plate_number from public.vehicles")));
   ok("plate number hidden from public", /permission denied/.test(e), e);
+  const blankForm = vehicleSchema.safeParse({ type: "", model: "301", seats: "4" });
+  ok("the form accepts a vehicle with no type, brand or color", blankForm.success && blankForm.data.type === null && blankForm.data.brand === null && blankForm.data.color === null, blankForm);
+  ok("the form still requires a model", !vehicleSchema.safeParse({ type: "", model: "  ", seats: "4" }).success);
+  const bareVehicle = (await as(pool, driver, (c) => c.query("insert into public.vehicles (owner_id, type, brand, model, color, seats) values ($1, null, null, '301', null, 4) returning id", [driver]))).rows[0].id as string;
+  const bareTrip = await publishTrip(pool, driver, { vehicle: bareVehicle });
+  const bareSearch = await as(pool, "anon", (c) => c.query("select vehicle_brand, vehicle_model from public.search_trips(null, null, null, 1, null, null, null, null, 'departure', 50, 0) where id = $1", [bareTrip]));
+  ok("a ride with a bare vehicle appears in search", bareSearch.rows[0]?.vehicle_brand === null && bareSearch.rows[0]?.vehicle_model === "301", bareSearch.rows);
+  await pool.query("delete from public.trips where id = $1", [bareTrip]);
+  await pool.query("delete from public.vehicles where id = $1", [bareVehicle]);
+  e = await fails(as(pool, driver, (c) => c.query("insert into public.vehicles (owner_id, brand, model, seats) values ($1, '   ', '301', 4)", [driver])));
+  ok("a blank brand is stored as null, not spaces", /check constraint/.test(e), e);
   const pub = await as(pool, "anon", (c) => c.query("select brand, model from public.vehicles where id=$1", [vehicle]));
   ok("public vehicle info readable", pub.rows[0]?.brand === "Peugeot");
   const mine = await as(pool, driver, (c) => c.query("select plate_number from public.get_my_vehicles()"));
@@ -500,6 +514,18 @@ async function run(pool: Pool) {
     (await pool.query("select status from public.trips where id=$1", [p2Trip])).rows[0].status === "cancelled");
   ok("…and frees passengers' bookings",
     (await pool.query("select status from public.bookings where id=$1", [p1OnP2])).rows[0].status === "cancelled");
+  e = await fails(as(pool, "anon", (c) => c.query("select suspended_reason from public.profiles")));
+  ok("guests cannot read a suspension reason", /does not exist/.test(e), e);
+  e = await fails(as(pool, p1, (c) => c.query("select suspended_reason from public.profiles")));
+  ok("other users cannot read it from profiles", /does not exist/.test(e), e);
+  const otherReason = await as(pool, p1, (c) => c.query("select suspended_reason from public.profile_private where id = $1", [p2]));
+  ok("other users cannot read it from profile_private", otherReason.rowCount === 0, otherReason.rows);
+  const ownReason = await as(pool, p2, (c) => c.query("select suspended_reason from public.profile_private where id = $1", [p2]));
+  ok("the suspended user can read their own reason", ownReason.rows[0]?.suspended_reason === "Harcèlement", ownReason.rows);
+  e = await fails(as(pool, p2, (c) => c.query("update public.profile_private set suspended_reason = null where id = $1", [p2])));
+  ok("the suspended user cannot change their reason", /permission denied/.test(e), e);
+  const adminReason = await as(pool, admin, (c) => c.query("select suspended_reason from public.admin_list_users('p2@test.tn')"));
+  ok("admins still see the reason", adminReason.rows[0]?.suspended_reason === "Harcèlement", adminReason.rows);
   e = await fails(book(pool, p2, hot2, 1));
   ok("suspended user cannot book", /account_suspended|duplicate_booking/.test(e), e);
   e = await fails(publishTrip(pool, p2));
@@ -508,6 +534,7 @@ async function run(pool: Pool) {
   ok("admin cannot suspend self", /cannot_moderate_self/.test(e), e);
   await as(pool, admin, (c) => c.query("select public.admin_set_user_status($1,'active',null)", [p2]));
   ok("admin reactivates account", (await pool.query("select status from public.profiles where id=$1", [p2])).rows[0].status === "active");
+  ok("reactivation clears the reason", (await pool.query("select suspended_reason from public.profile_private where id=$1", [p2])).rows[0].suspended_reason === null);
   const msgId = (await pool.query("select id from public.messages limit 1")).rows[0].id;
   await as(pool, admin, (c) => c.query("select public.admin_set_message_hidden($1, true)", [msgId]));
   const hiddenMsg = await as(pool, driver, (c) => c.query("select id from public.messages where id=$1", [msgId]));
@@ -549,7 +576,7 @@ async function run(pool: Pool) {
   const bucket = (await pool.query("select file_size_limit, allowed_mime_types from storage.buckets where id='avatars'")).rows[0];
   ok("avatar bucket restricts size & type", bucket.file_size_limit === "2097152" && bucket.allowed_mime_types.includes("image/webp"), bucket);
   // -------------------------------------------------------------------------
-  console.log("\nProfile completion & public driver phones");
+  console.log("\nProfile completion & driver phone privacy");
   const fresh = await createUser(pool, "fresh@test.tn", "Nour Fresh", "+21698765432", { complete: false });
   const noName = await createUser(pool, "noname@test.tn", "", "+21698765433", { complete: false });
   const isComplete = async (u: string) => (await as(pool, u, (c) => c.query("select public.my_profile_complete() v"))).rows[0].v as boolean;
@@ -562,9 +589,20 @@ async function run(pool: Pool) {
   e = await fails(as(pool, fresh, (c) => c.query("update public.profiles set avatar_path = 'someone-else/x.jpg' where id = $1", [fresh])));
   ok("avatar must live in the user's own folder", /check constraint|violates/.test(e), e);
   await as(pool, fresh, (c) => c.query("update public.profiles set avatar_path = $1 || '/me.jpg' where id = $1::uuid", [fresh]));
+  ok("an avatar path with no uploaded file does not count", (await isComplete(fresh)) === false);
+  e = await fails(publishTrip(pool, fresh));
+  ok("a fake avatar path cannot be used to publish", /profile_incomplete/.test(e), e);
+  e = await fails(book(pool, fresh, openTrip, 1));
+  ok("a fake avatar path cannot be used to book", /profile_incomplete/.test(e), e);
+  await as(pool, fresh, (c) => c.query("insert into storage.objects (bucket_id, name, owner) values ('avatars', $1 || '/me.jpg', $1::uuid)", [fresh]));
   ok("avatar + name + phone completes the profile", (await isComplete(fresh)) === true);
   ok("completed profile can publish a ride", typeof (await publishTrip(pool, fresh)) === "string");
+  await as(pool, fresh, (c) => c.query("delete from storage.objects where bucket_id = 'avatars' and name = $1 || '/me.jpg'", [fresh]));
+  e = await fails(publishTrip(pool, fresh));
+  ok("deleting the avatar file makes the profile incomplete again", /profile_incomplete/.test(e), e);
+  await as(pool, fresh, (c) => c.query("insert into storage.objects (bucket_id, name, owner) values ('avatars', $1 || '/me.jpg', $1::uuid)", [fresh]));
   await as(pool, noName, (c) => c.query("update public.profiles set avatar_path = $1 || '/me.jpg' where id = $1::uuid", [noName]));
+  await as(pool, noName, (c) => c.query("insert into storage.objects (bucket_id, name, owner) values ('avatars', $1 || '/me.jpg', $1::uuid)", [noName]));
   ok("empty name keeps the profile incomplete", (await isComplete(noName)) === false);
   e = await fails(as(pool, fresh, (c) => c.query("update public.profiles set avatar_path = null where id = $1", [fresh])));
   ok("avatar cannot be removed once set", /avatar_required/.test(e), e);
@@ -572,17 +610,35 @@ async function run(pool: Pool) {
   ok("phone cannot be removed once set", /phone_required/.test(e), e);
   e = await fails(as(pool, fresh, (c) => c.query("update public.profile_private set phone = '+33612345678' where id = $1", [fresh])));
   ok("non-Tunisian phone rejected by constraint", /check constraint/.test(e), e);
-  e = await fails(as(pool, "anon", (c) => c.query("select driver_id, phone from public.get_driver_phones($1::uuid[])", [[driver]])));
-  ok("guests cannot read driver phones", /permission denied/.test(e), e);
-  const phones = await as(pool, p2, (c) => c.query("select driver_id, phone from public.get_driver_phones($1::uuid[])", [[driver, p1, fresh]]));
-  const phoneMap = new Map(phones.rows.map((r) => [r.driver_id, r.phone]));
-  ok("signed-in users see the phone of drivers with an open ride", phoneMap.get(driver) === "+21622123456" && phoneMap.get(fresh) === "+21698765432", phones.rows);
-  ok("passengers' phones stay private", !phoneMap.has(p1), phones.rows);
-  const pastDriver = await createUser(pool, "pastdriver@test.tn", "Past Driver", "+21698765434");
-  const pastTrip = await publishTrip(pool, pastDriver);
-  await pool.query("update public.trips set status = 'completed' where id = $1", [pastTrip]);
-  const pastPhones = await as(pool, p2, (c) => c.query("select phone from public.get_driver_phones($1::uuid[])", [[pastDriver]]));
-  ok("a driver's phone is hidden once they have no open ride", pastPhones.rowCount === 0, pastPhones.rows);
+  ok("no bulk driver phone lookup exists", (await pool.query("select to_regprocedure('public.get_driver_phones(uuid[])') r")).rows[0].r === null);
+  e = await fails(as(pool, "anon", (c) => c.query("select * from public.get_trip_contacts($1)", [openTrip])));
+  ok("guests cannot request trip contacts", /permission denied/.test(e), e);
+  const contactsFor = async (u: string, t: string) => (await as(pool, u, (c) => c.query("select phone, role from public.get_trip_contacts($1)", [t]))).rows;
+  ok("a signed-in stranger gets no driver phone", (await contactsFor(p2, openTrip)).length === 0);
+  const phoneBooking = await book(pool, fresh, openTrip, 1);
+  ok("a pending passenger gets no driver phone", (await contactsFor(fresh, openTrip)).length === 0);
+  await as(pool, driver, (c) => c.query("select public.respond_booking($1, true)", [phoneBooking]));
+  const accepted = await contactsFor(fresh, openTrip);
+  ok("an accepted passenger gets the driver phone", accepted.length === 1 && accepted[0].role === "driver" && accepted[0].phone === "+21622123456", accepted);
+  await as(pool, fresh, (c) => c.query("select public.cancel_booking($1, null)", [phoneBooking]));
+  ok("cancelling the booking removes phone access", (await contactsFor(fresh, openTrip)).length === 0);
+  const directRead = await as(pool, p2, (c) => c.query("select phone from public.profile_private where id = $1", [driver]));
+  ok("a driver's phone cannot be read directly", directRead.rowCount === 0, directRead.rows);
+
+  const samePhone = ["22 123 456", "+216 22 123 456", "00216 22 123 456", "216 22 123 456", "22-123-456"];
+  ok("every accepted input format is stored the same way", samePhone.every((v) => normalizeTunisianPhone(v) === "+21622123456"), samePhone.map(normalizeTunisianPhone));
+  ok("mistyped numbers are rejected", ["2212345", "221234567", "12 345 678", "+33612345678", "+21612345678", "abc"].every((v) => normalizeTunisianPhone(v) === null));
+  const phoneCases = [..."0123456789"].map((n) => `+216${n}1234567`).concat(["+2162123456", "+216212345678", "21621234567", "+33612345678"]);
+  const mismatches: string[] = [];
+  for (const candidate of phoneCases) {
+    const dbAccepts = (await fails(as(pool, fresh, (c) => c.query("update public.profile_private set phone = $2 where id = $1", [fresh, candidate])))) === "__no_error__";
+    if (dbAccepts !== TN_PHONE_REGEX.test(candidate)) mismatches.push(candidate);
+  }
+  ok("database and app agree on every phone number tested", mismatches.length === 0, mismatches);
+  for (const kept of ["+21660123456", "+21680123456"]) {
+    e = await fails(as(pool, fresh, (c) => c.query("update public.profile_private set phone = $2 where id = $1", [fresh, kept])));
+    ok(`${kept.slice(0, 5)}${kept[5]}x numbers are not rejected, in the database or the app`, e === "__no_error__" && TN_PHONE_REGEX.test(kept), e);
+  }
   await as(pool, fresh, (c) => c.query("update public.profile_private set phone = $2 where id = $1", [fresh, "+21698765499"]));
   ok("owner can change their phone (stored in E.164)", (await pool.query("select phone from public.profile_private where id = $1", [fresh])).rows[0].phone === "+21698765499");
   e = await fails(as(pool, "anon", (c) => c.query("select phone from public.profile_private")));
@@ -631,6 +687,35 @@ async function run(pool: Pool) {
   await pool.query(readFileSync(path.join(root, "supabase/seed/demo_cleanup.sql"), "utf8"));
   ok("cleanup removes all demo data", (await pool.query("select (select count(*) from public.trips where is_demo) + (select count(*) from public.profiles where is_demo) n")).rows[0].n === "0");
   ok("cleanup leaves real trips untouched", (await pool.query("select count(*)::int n from public.trips where not is_demo")).rows[0].n === realTrips);
+
+  console.log("\nEmail verification");
+  const pending = (await pool.query(
+    "insert into auth.users (email, raw_user_meta_data) values ('pending@test.tn', $1) returning id",
+    [JSON.stringify({ full_name: "Pending User", phone: "+21622333444", locale: "ar" })],
+  )).rows[0].id as string;
+  const rowsFor = async (id: string) => (await pool.query("select p.full_name, p.preferred_locale::text locale, p.role::text, pp.phone from public.profiles p left join public.profile_private pp on pp.id = p.id where p.id = $1", [id])).rows;
+  ok("no profile before the email is verified", (await rowsFor(pending)).length === 0);
+  await pool.query("update auth.users set last_sign_in_at = now() where id = $1", [pending]);
+  ok("unrelated user updates create no profile", (await rowsFor(pending)).length === 0);
+  await pool.query("update auth.users set email_confirmed_at = now() where id = $1", [pending]);
+  const created = await rowsFor(pending);
+  ok("verification creates the profile from signup data", created.length === 1 && created[0].full_name === "Pending User" && created[0].locale === "ar" && created[0].phone === "+21622333444", created);
+  await as(pool, pending, (c) => c.query("insert into storage.objects (bucket_id, name, owner) values ('avatars', $1 || '/me.jpg', $1::uuid)", [pending]));
+  ok("a newly verified user can upload an avatar", true);
+  await as(pool, pending, (c) => c.query("update public.profiles set avatar_path = $1 || '/me.jpg' where id = $1::uuid", [pending]));
+  ok("avatar completes a new profile and keeps signup data", (await isComplete(pending)) === true && (await rowsFor(pending))[0].full_name === "Pending User");
+  const badMeta = (await pool.query(
+    "insert into auth.users (email, raw_user_meta_data) values ('badmeta@test.tn', $1) returning id",
+    [JSON.stringify({ full_name: "Bad Meta", phone: "+21610123456", locale: "xx" })],
+  )).rows[0].id as string;
+  await pool.query("update auth.users set email_confirmed_at = now() where id = $1", [badMeta]);
+  const badRows = await rowsFor(badMeta);
+  ok("invalid signup data cannot abort the confirmation", badRows.length === 1 && badRows[0].phone === null && badRows[0].locale === "fr", badRows);
+  await pool.query("update public.profiles set full_name = 'Renamed' where id = $1", [admin]);
+  await pool.query("update auth.users set email_confirmed_at = null where id = $1", [admin]);
+  await pool.query("update auth.users set email_confirmed_at = now() where id = $1", [admin]);
+  const kept = await rowsFor(admin);
+  ok("re-confirming never overwrites a profile or role", kept[0].full_name === "Renamed" && kept[0].role === "admin", kept);
 }
 
 

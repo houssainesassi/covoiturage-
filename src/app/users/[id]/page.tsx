@@ -7,7 +7,7 @@ import { getLocationMap } from "@/lib/locations";
 import { createClient } from "@/lib/supabase/server";
 import { fmt, formatDate, plural } from "@/lib/i18n/format";
 import { locName } from "@/lib/names";
-import { TRIP_CARD_SELECT, toCard, withDriverPhones } from "@/lib/queries";
+import { TRIP_CARD_SELECT, toCard } from "@/lib/queries";
 import { uuidSchema } from "@/lib/validation";
 import { Avatar } from "@/components/ui/avatar";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -42,7 +42,8 @@ export default async function UserPage({ params }: PageProps<"/users/[id]">) {
     supabase.from("trips").select(TRIP_CARD_SELECT).eq("driver_id", id).eq("status", "scheduled").gt("departure_at", new Date().toISOString()).order("departure_at").limit(6),
   ]);
   const { data: past } = await supabase.from("trips").select(TRIP_CARD_SELECT).eq("driver_id", id).eq("status", "completed").order("departure_at", { ascending: false }).limit(4);
-  const [upcomingCards, pastCards] = await Promise.all([withDriverPhones(supabase, (trips ?? []).map(toCard)), withDriverPhones(supabase, (past ?? []).map(toCard))]);
+  const upcomingCards = (trips ?? []).map(toCard);
+  const pastCards = (past ?? []).map(toCard);
   const city = profile.city_id ? locs.get(profile.city_id) : null;
 
   return (

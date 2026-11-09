@@ -13,16 +13,20 @@ const KNOWN = new Set<string>([
   "message_not_found", "profile_incomplete", "avatar_required", "phone_required",
 ]);
 
-type AnyError = { message?: string; code?: string; status?: number } | null | undefined;
+type AnyError = { name?: string; message?: string; code?: string; status?: number } | null | undefined;
 
 /** Maps Postgres / PostgREST / Supabase Auth errors to a translatable code. */
 export function toErrorCode(error: AnyError): ErrorCode {
   if (!error) return "unknown";
   const msg = error.message ?? "";
   if (KNOWN.has(msg)) return msg as ErrorCode;
+  if (error.name === "AuthRetryableFetchError") return "network_error";
   switch (error.code) {
     case "invalid_credentials": return "invalid_credentials";
     case "email_not_confirmed": return "email_not_confirmed";
+    // Supabase Auth reports wrong, expired and already-used codes with this same error.
+    case "otp_expired": return "otp_invalid";
+    case "email_address_not_authorized": return "email_send_failed";
     case "user_already_exists":
     case "email_exists": return "email_taken";
     case "weak_password": return "weak_password";
@@ -38,6 +42,7 @@ export function toErrorCode(error: AnyError): ErrorCode {
   }
   if (/invalid login credentials/i.test(msg)) return "invalid_credentials";
   if (/email not confirmed/i.test(msg)) return "email_not_confirmed";
+  if (/token has expired|expired or is invalid/i.test(msg)) return "otp_invalid";
   if (/already registered/i.test(msg)) return "email_taken";
   if (/error sending (confirmation|recovery|magic link)? ?email/i.test(msg)) return "email_send_failed";
   if (/row-level security|permission denied/i.test(msg)) return "forbidden";

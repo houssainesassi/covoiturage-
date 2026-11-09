@@ -19,6 +19,12 @@ async function guard(key: string, max: number) {
   return null;
 }
 
+const OTP_WINDOW_MS = 10 * 60 * 1000;
+const emailField = z.string().trim().toLowerCase().email();
+
+const verifyUrl = (email: string, next: string) =>
+  `/auth/verify?email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`;
+
 export async function loginAction(_: ActionResult | null, fd: FormData): Promise<ActionResult> {
   const blocked = await guard("login", 20);
   if (blocked) return blocked;
@@ -26,7 +32,13 @@ export async function loginAction(_: ActionResult | null, fd: FormData): Promise
   if (!parsed.success) return fail("invalid_credentials");
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
-  if (error) return fail(toErrorCode(error));
+  if (error) {
+    const code = toErrorCode(error);
+    if (code !== "email_not_confirmed") return fail(code);
+    // Right password, unverified email: the earlier code may have expired, so send a new one.
+    await supabase.auth.resend({ type: "signup", email: parsed.data.email });
+    redirect(verifyUrl(parsed.data.email, safeNext(String(fd.get("next") ?? ""), "/")));
+  }
   revalidatePath("/", "layout");
   redirect(safeNext(String(fd.get("next") ?? "")));
 }
@@ -59,6 +71,7 @@ export async function registerAction(_: ActionResult | null, fd: FormData): Prom
   const supabase = await createClient();
   const origin = await getOrigin();
   const next = safeNext(String(fd.get("next") ?? ""));
+  const after = safeNext(String(fd.get("next") ?? ""), "/");
   const { data, error } = await supabase.auth.signUp({
     email: v.email,
     password: v.password,
@@ -67,16 +80,49 @@ export async function registerAction(_: ActionResult | null, fd: FormData): Prom
       emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
     },
   });
-  if (error) return fail(toErrorCode(error));
+  if (error) {
+    // This address was sent a code seconds ago, so carry on to the code page. The project-wide
+    // email limit has the same code but a different message, and no code is on its way then.
+    if (error.code === "over_email_send_rate_limit" && /after \d+ seconds?/i.test(error.message)) redirect(verifyUrl(v.email, after));
+    return fail(toErrorCode(error));
+  }
   // With email confirmation enabled, an existing address returns a user without identities.
   if (data.user && data.user.identities?.length === 0) return fail("email_taken", { email: "email_taken" });
   if (data.session) {
+    // A session here means Supabase auto-confirmed the account and sent no code.
+    console.error("[auth] signup skipped email verification: enable Confirm email in Supabase");
     revalidatePath("/", "layout");
-    // New accounts must add an avatar (and confirm name/phone) before using the app.
-    const after = safeNext(String(fd.get("next") ?? ""), "/");
     redirect(`/auth/complete-profile?next=${encodeURIComponent(after)}`);
   }
-  redirect(`/auth/check-email?email=${encodeURIComponent(v.email)}`);
+  redirect(verifyUrl(v.email, after));
+}
+
+export async function verifyEmailOtpAction(_: ActionResult | null, fd: FormData): Promise<ActionResult> {
+  const blocked = await guard("verify", 20);
+  if (blocked) return blocked;
+  const email = emailField.safeParse(fd.get("email"));
+  const token = z.string().regex(/^\d{6}$/).safeParse(fd.get("token"));
+  if (!email.success || !token.success) return fail("otp_invalid");
+  // Per-address limit too, so guessing one account's code from many IPs stays slow.
+  if (!rateLimit(`verify-email:${email.data}`, 10, OTP_WINDOW_MS)) return fail("rate_limited");
+  const supabase = await createClient();
+  const { error } = await supabase.auth.verifyOtp({ email: email.data, token: token.data, type: "email" });
+  if (error) return fail(toErrorCode(error));
+  revalidatePath("/", "layout");
+  // Offer the required photo now; it can wait until the first ride they publish or book.
+  const after = safeNext(String(fd.get("next") ?? ""), "/");
+  redirect(`/auth/complete-profile?verified=1&next=${encodeURIComponent(after)}`);
+}
+
+export async function resendEmailOtpAction(_: ActionResult | null, fd: FormData): Promise<ActionResult> {
+  const blocked = await guard("resend", 10);
+  if (blocked) return blocked;
+  const email = emailField.safeParse(fd.get("email"));
+  if (!email.success) return fail("invalid_email");
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resend({ type: "signup", email: email.data });
+  if (error) return fail(toErrorCode(error));
+  return { ok: true };
 }
 
 export async function forgotPasswordAction(_: ActionResult | null, fd: FormData): Promise<ActionResult> {

@@ -14,3 +14,8 @@ export function i18nName(v: unknown, locale: Locale): string {
   }
   return "";
 }
+
+/** "Peugeot 301", or just "301" when the optional brand was left blank. */
+export function vehicleName(v: { brand: string | null; model: string }) {
+  return [v.brand, v.model].filter(Boolean).join(" ");
+}

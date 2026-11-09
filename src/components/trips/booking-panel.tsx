@@ -24,9 +24,11 @@ type Props = {
   initialSeats?: number;
   /** The passenger's latest request for this ride was declined. */
   wasRejected?: boolean;
+  /** Signed in, but the photo, name or phone number required to book is missing. */
+  needsProfile?: boolean;
 };
 
-export function BookingPanel({ tripId, price, seatsAvailable, state, booking, initialSeats = 1, wasRejected = false }: Props) {
+export function BookingPanel({ tripId, price, seatsAvailable, state, booking, initialSeats = 1, wasRejected = false, needsProfile = false }: Props) {
   const { d, locale } = useI18n();
   const router = useRouter();
   const [seats, setSeats] = useState(Math.min(Math.max(initialSeats, 1), Math.max(seatsAvailable, 1)));
@@ -102,6 +104,16 @@ export function BookingPanel({ tripId, price, seatsAvailable, state, booking, in
         {total}
         <p className="text-sm text-slate-500">{d.auth.loginToBook}</p>
         <Link href={`/auth/login?next=${encodeURIComponent(`/trips/${tripId}?seats=${seats}`)}`} className={buttonClass("primary", "lg", "w-full")}>{d.trip.loginToBook}</Link>
+      </div>
+    );
+  }
+
+  if (needsProfile) {
+    return (
+      <div className="space-y-4">
+        {total}
+        <p className="rounded-xl bg-accent-100 p-3 text-sm font-medium text-slate-800" role="status">{d.trip.completeProfileToBook}</p>
+        <Link href={`/auth/complete-profile?next=${encodeURIComponent(`/trips/${tripId}?seats=${seats}`)}`} className={buttonClass("primary", "lg", "w-full")}>{d.trip.completeProfileCta}</Link>
       </div>
     );
   }

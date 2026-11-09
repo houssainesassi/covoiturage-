@@ -11,7 +11,7 @@ import { routeLabel } from "@/lib/notifications";
 import { SearchForm } from "@/components/search/search-form";
 import { SearchFilters } from "@/components/search/filters";
 import { TripCard } from "@/components/trips/trip-card";
-import { TRIP_CARD_SELECT, toCard, withDriverPhones } from "@/lib/queries";
+import { TRIP_CARD_SELECT, toCard } from "@/lib/queries";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState, Pagination } from "@/components/ui/misc";
 
@@ -71,9 +71,8 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
     if (maxPrice) q = q.lte("price_per_seat", maxPrice);
     if (date) q = q.gte("departure_at", `${date}T00:00:00+01:00`).lt("departure_at", `${date}T23:59:59+01:00`);
     const { data: pastRows } = await q.order("departure_at", { ascending: false }).limit(6);
-    past = await withDriverPhones(supabase, (pastRows ?? []).map(toCard));
+    past = (pastRows ?? []).map(toCard);
   }
-  const phones = new Map((await withDriverPhones(supabase, rows)).map((r) => [r.id, r.driver_phone]));
 
   const qs = (patch: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
@@ -110,7 +109,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
                     locations={byId}
                     d={d}
                     locale={locale}
-                    trip={{ ...r, driver_phone: phones.get(r.id) ?? null, price_per_seat: Number(r.price_per_seat), driver_rating: Number(r.driver_rating), vehicle: r.vehicle_brand ? `${r.vehicle_brand} ${r.vehicle_model ?? ""}`.trim() : null }}
+                    trip={{ ...r, price_per_seat: Number(r.price_per_seat), driver_rating: Number(r.driver_rating), vehicle: [r.vehicle_brand, r.vehicle_model].filter(Boolean).join(" ") || null }}
                   />
                 ))}
               </div>

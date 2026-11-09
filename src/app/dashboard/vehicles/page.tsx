@@ -1,3 +1,4 @@
+import { vehicleName } from "@/lib/names";
 import Image from "next/image";
 import Link from "next/link";
 import { CarFront, Pencil } from "lucide-react";
@@ -31,8 +32,8 @@ export default async function VehiclesPage() {
                 {!v.is_active && <Badge tone="neutral" className="absolute start-3 top-3">{d.vehicles.archived}</Badge>}
               </div>
               <div className="p-4">
-                <p className="text-lg font-semibold">{v.brand} {v.model}</p>
-                <p className="text-sm text-slate-500">{d.vehicles.types[v.type]} · {v.color}{v.year ? ` · ${v.year}` : ""} · {plural(d.units.seats, v.seats, locale)}</p>
+                <p className="text-lg font-semibold">{vehicleName(v)}</p>
+                <p className="text-sm text-slate-500">{[v.type && d.vehicles.types[v.type], v.color, v.year, plural(d.units.seats, v.seats, locale)].filter(Boolean).join(" · ")}</p>
                 {v.plate_number && <p className="mt-1 text-sm font-medium text-slate-700">{v.plate_number}</p>}
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                   <Link href={`/dashboard/vehicles/${v.id}/edit`} className={buttonClass("outline", "sm")}><Pencil className="size-4" aria-hidden />{d.common.edit}</Link>

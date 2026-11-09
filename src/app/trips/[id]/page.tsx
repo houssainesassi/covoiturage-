@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CalendarDays, Car, Cigarette, CigaretteOff, Clock, Dog, Luggage, MessageSquare, Music, Phone, Route, Users, VolumeX } from "lucide-react";
+import { ArrowLeft, CalendarDays, Car, Cigarette, CigaretteOff, Clock, Dog, Luggage, MessageSquare, Music, Route, Users, VolumeX } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getUser } from "@/lib/auth";
 import { getLocationMap } from "@/lib/locations";
 import { createClient } from "@/lib/supabase/server";
 import { fmt, formatDate, formatDuration, formatPrice, formatTime, plural } from "@/lib/i18n/format";
-import { locName } from "@/lib/names";
+import { locName, vehicleName } from "@/lib/names";
 import { routeLabel } from "@/lib/notifications";
 import { publicUrl } from "@/lib/storage";
 import { uuidSchema } from "@/lib/validation";
@@ -55,17 +55,17 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
   const driver = trip.driver;
   const isOwner = user?.id === trip.driver_id;
 
-  const [{ data: passengers }, myBookingRes, contactsRes, phonesRes] = await Promise.all([
+  const [{ data: passengers }, myBookingRes, contactsRes, profileCompleteRes] = await Promise.all([
     supabase.rpc("get_trip_passengers_public", { p_trip_id: trip.id }),
     user && !isOwner
       ? supabase.from("bookings").select("id, status, seats, total_price").eq("trip_id", trip.id).eq("passenger_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle()
       : Promise.resolve({ data: null }),
     user ? supabase.rpc("get_trip_contacts", { p_trip_id: trip.id }) : Promise.resolve({ data: null }),
-    user ? supabase.rpc("get_driver_phones", { p_driver_ids: [trip.driver_id] }) : Promise.resolve({ data: null }),
+    user && !isOwner ? supabase.rpc("my_profile_complete") : Promise.resolve({ data: null }),
   ]);
   const myBooking = myBookingRes.data && ["pending", "confirmed", "completed"].includes(myBookingRes.data.status) ? myBookingRes.data : null;
   const driverContact = (contactsRes.data ?? []).find((c) => c.role === "driver");
-  const driverPhone = driverContact?.phone ?? phonesRes.data?.[0]?.phone ?? null;
+  const driverPhone = driverContact?.phone ?? null;
   const wasRejected = myBookingRes.data?.status === "rejected";
 
   const departed = new Date(trip.departure_at) <= new Date();
@@ -134,6 +134,7 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
             phone={driverPhone}
             plate={driverContact?.plate_number}
             viewer={isOwner ? "owner" : user ? "member" : "guest"}
+            confirmed={Boolean(driverContact)}
             active={trip.status === "scheduled" && !departed}
           />
           <Card id="book" className="scroll-mt-24 p-5">
@@ -150,6 +151,7 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
               seatsAvailable={trip.seats_available}
               state={state}
               wasRejected={wasRejected}
+              needsProfile={profileCompleteRes.data === false}
               initialSeats={Number(typeof sp.seats === "string" ? sp.seats : 1) || 1}
               booking={myBooking ? { id: myBooking.id, status: myBooking.status, seats: myBooking.seats, total: Number(myBooking.total_price) } : null}
             />
@@ -191,7 +193,7 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
             {trip.vehicle ? (
               <div className="mt-3 flex items-center gap-4">
                 {photo && <Image src={publicUrl("vehicles", photo)!} alt="" width={120} height={80} className="h-20 w-28 rounded-xl object-cover" />}
-                <p className="text-slate-700">{trip.vehicle.brand} {trip.vehicle.model} · {trip.vehicle.color}{trip.vehicle.year ? ` · ${trip.vehicle.year}` : ""}</p>
+                <p className="text-slate-700">{[vehicleName(trip.vehicle), trip.vehicle.color, trip.vehicle.year].filter(Boolean).join(" · ")}</p>
               </div>
             ) : <p className="mt-2 text-sm text-slate-500">{d.trip.noVehicle}</p>}
           </Card>
@@ -216,7 +218,6 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
             <p className="text-lg font-extrabold leading-tight text-brand-700">{formatPrice(Number(trip.price_per_seat), locale)}</p>
             <p className="truncate text-xs text-slate-500">{plural(d.units.seatsLeft, trip.seats_available, locale)}</p>
           </div>
-          {driverPhone && <a href={`tel:${driverPhone}`} aria-label={d.trip.callDriver} className={buttonClass("secondary", "icon", "h-12 w-12")}><Phone className="size-5" aria-hidden /></a>}
           <a href="#book" className={buttonClass("primary", "lg", "h-12 px-7")}>{d.trip.bookNow}</a>
         </div>
       )}

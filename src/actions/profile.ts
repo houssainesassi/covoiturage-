@@ -1,10 +1,8 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { fail, toErrorCode, type ActionResult, type ErrorCode } from "@/lib/errors";
 import { completeProfileSchema, phoneField, profileSchema } from "@/lib/validation";
-import { PROFILE_OK_COOKIE } from "@/lib/profile-gate";
 import { safeNext } from "@/lib/utils";
 import { authed, result, savePrivateProfile } from "./_util";
 
@@ -98,7 +96,6 @@ export async function completeProfileAction(_: ActionResult | null, fd: FormData
 
   const { data: complete, error: e3 } = await supabase.rpc("my_profile_complete");
   if (!e3 && !complete) return fail("profile_incomplete");
-  (await cookies()).set(PROFILE_OK_COOKIE, userId, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 24 * 30 });
   revalidatePath("/", "layout");
   const next = safeNext(String(fd.get("next") ?? ""), "/");
   redirect(next.startsWith("/auth") ? "/" : next);

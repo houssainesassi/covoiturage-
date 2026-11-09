@@ -1,11 +1,16 @@
 -- =============================================================================
--- Mandatory profile completion + public driver phone numbers.
+-- Mandatory profile completion before publishing a ride or booking a seat.
 --
--- A profile is complete when it has a name (>= 2 chars), an avatar and a valid
--- Tunisian phone number. Incomplete (non-demo) accounts can neither publish a
--- ride nor book a seat. Drivers' phone numbers are shown on their ride posts.
+-- A profile is complete when it has a name (>= 2 chars), an avatar that really
+-- exists in storage and a valid Tunisian phone number. Browsing stays open to
+-- everyone; only the writes below are blocked. Existing trips and bookings are
+-- not touched, because the triggers fire on insert only.
+--
+-- Rollback: supabase/rollback/20261108000008_profile_completion.down.sql
 -- =============================================================================
 
+-- The phone rule below matches profile_private_phone_check from migration 1. Keep
+-- it in sync with TN_PHONE_REGEX in src/lib/phone.ts and migrations 10 and 11.
 create or replace function public.is_profile_complete(p_user_id uuid)
 returns boolean
 language sql
@@ -15,8 +20,12 @@ set search_path = ''
 as $$
   select coalesce((
     select char_length(trim(p.full_name)) >= 2
-       and p.avatar_path is not null
-       and pp.phone is not null
+       and pp.phone ~ '^\+216[2-9][0-9]{7}$'
+       -- avatar_path is client-writable, so a path alone proves nothing.
+       and exists (
+         select 1 from storage.objects o
+         where o.bucket_id = 'avatars' and o.name = p.avatar_path
+       )
     from public.profiles p
     left join public.profile_private pp on pp.id = p.id
     where p.id = p_user_id
@@ -24,7 +33,7 @@ as $$
 $$;
 revoke all on function public.is_profile_complete(uuid) from public, anon, authenticated;
 
--- Current user's completion status (used by the app to gate navigation).
+-- Current user's completion status (used by the app to explain the requirement).
 create or replace function public.my_profile_complete()
 returns boolean
 language sql
@@ -36,24 +45,6 @@ as $$
 $$;
 revoke all on function public.my_profile_complete() from public, anon;
 grant execute on function public.my_profile_complete() to authenticated;
-
--- Phone numbers of the given drivers, only for users who actually post rides.
--- Passengers' numbers stay private (revealed via get_trip_contacts only).
-create or replace function public.get_driver_phones(p_driver_ids uuid[])
-returns table (driver_id uuid, phone text)
-language sql
-stable
-security definer
-set search_path = ''
-as $$
-  select pp.id, pp.phone
-  from public.profile_private pp
-  where pp.id = any (p_driver_ids[1:100])
-    and pp.phone is not null
-    and exists (select 1 from public.trips t where t.driver_id = pp.id and t.status <> 'cancelled');
-$$;
-revoke all on function public.get_driver_phones(uuid[]) from public;
-grant execute on function public.get_driver_phones(uuid[]) to anon, authenticated;
 
 -- Server-side enforcement: incomplete profiles cannot publish or book.
 create or replace function public.require_complete_profile()
@@ -73,8 +64,10 @@ begin
 end;
 $$;
 
+drop trigger if exists trips_b_require_complete_profile on public.trips;
 create trigger trips_b_require_complete_profile before insert on public.trips
   for each row when (not new.is_demo) execute function public.require_complete_profile('driver_id');
+drop trigger if exists bookings_require_complete_profile on public.bookings;
 create trigger bookings_require_complete_profile before insert on public.bookings
   for each row when (not new.is_demo) execute function public.require_complete_profile('passenger_id');
 
@@ -91,6 +84,7 @@ begin
   return new;
 end;
 $$;
+drop trigger if exists profiles_keep_avatar on public.profiles;
 create trigger profiles_keep_avatar before update of avatar_path on public.profiles
   for each row execute function public.profiles_keep_avatar();
 
@@ -107,5 +101,6 @@ begin
   return new;
 end;
 $$;
+drop trigger if exists profile_private_keep_phone on public.profile_private;
 create trigger profile_private_keep_phone before update of phone on public.profile_private
   for each row execute function public.profile_private_keep_phone();

@@ -34,10 +34,24 @@ Supabase (Postgres, Auth, Storage, Realtime) · Tailwind CSS 4 · Leaflet + Open
 ### Supabase dashboard configuration
 - **Auth → URL Configuration:** Site URL = your domain; add `https://<domain>/auth/callback` (and
   `http://localhost:3000/auth/callback`) to Redirect URLs.
-- **Auth → SMTP:** configure a custom SMTP provider for production email volume.
+- **Auth → SMTP:** configure a custom SMTP provider. Required: Supabase's default sender only reaches team members.
+- **Email verification (mandatory):** deploy the app, apply the migrations and set up SMTP, then:
+  1. **Auth → Email Templates → Confirm signup:** paste `supabase/templates/confirm-signup.html` (it sends `{{ .Token }}`, not a link).
+  2. **Auth → Providers → Email:** check that **Email OTP Length** is 6 (the app accepts exactly 6 digits), leave the expiry unchanged, and turn **Confirm email** on.
 - **Database → Extensions:** enable `pg_cron` (then re-run migration 6) — otherwise set `CRON_SECRET`
   and `SUPABASE_SECRET_KEY` so Vercel Cron calls `/api/cron`.
 - **Create the first admin** (SQL Editor): `update public.profiles set role = 'admin' where id = '<user uuid>';`
+
+## Applying migrations to production
+The full checklist, with commands and expected results, is in `supabase/ROLLOUT.md`.
+
+Use one method only. `db push` does not know about files run by hand in the SQL Editor, so mixing them can apply a migration twice.
+1. Run `supabase migration list`. If earlier migrations show as local only but are already live, record them with `supabase migration repair --status applied <version>`. Never re-run them.
+2. Run the read-only report in `supabase/preflight.sql`.
+3. Deploy the app, then run `supabase db push`.
+4. Only then set up the email template and turn on **Confirm email**.
+
+Rollback SQL is in `supabase/rollback/`. Test the migrations with `npx tsx scripts/db/migration-safety.ts` and real Auth with `scripts/e2e/otp-real-auth.ts` on a staging project.
 
 ## Historical demo data (optional, for testing)
 `supabase/seed/demo_history.sql` adds ~80 fictional **past** rides (Tunis ↔ El Fahs, Zaghouan, Nabeul,

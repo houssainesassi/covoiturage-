@@ -1,7 +1,9 @@
 /**
- * Authenticated E2E: sign up → log in → publish a trip. Creates a real test user + trip.
- *   BASE_URL=http://127.0.0.1:3456 CHROME_PATH=... npx tsx scripts/e2e/auth-flow.ts
+ * Authenticated E2E: sign up → verify email code → log in → publish a trip. Creates a real test user + trip.
+ * Asks for the 6-digit code, so TEST_EMAIL must be an inbox you can read.
+ *   TEST_EMAIL=you@example.com BASE_URL=http://127.0.0.1:3456 CHROME_PATH=... npx tsx scripts/e2e/auth-flow.ts
  */
+import { createInterface } from "node:readline/promises";
 import { chromium } from "playwright-core";
 
 const BASE = process.env.BASE_URL ?? "http://127.0.0.1:3000";
@@ -45,11 +47,25 @@ async function main() {
   await page.waitForURL((u) => !u.pathname.startsWith("/auth/register"), { timeout: 20000 }).catch(() => {});
   const alert = await page.locator('form [role="alert"]').allInnerTexts();
   ok("register leaves the form", !page.url().includes("/auth/register"), { url: page.url(), alert });
-  ok("register → profile completion page", page.url().includes("/auth/complete-profile"), page.url());
+  ok("register → email code page", page.url().includes("/auth/verify"), page.url());
+
+  console.log("Verify email");
+  await page.goto(BASE + "/dashboard");
+  ok("unverified user is kept out of the app", page.url().includes("/auth/login"), page.url());
+  await page.goBack();
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const code = await rl.question(`6-digit code sent to ${email}: `);
+  rl.close();
+  await page.locator('input[inputmode="numeric"]').first().focus();
+  await page.keyboard.type(code.trim());
+  await page.waitForURL(/\/auth\/complete-profile/, { timeout: 20000 }).catch(() => {});
+  ok("code → profile completion page", page.url().includes("/auth/complete-profile"), page.url());
 
   console.log("Complete profile");
   await page.goto(BASE + "/dashboard");
-  ok("incomplete profile is redirected from the app", page.url().includes("/auth/complete-profile"), page.url());
+  ok("incomplete profile can still open the app", new URL(page.url()).pathname === "/dashboard", page.url());
+  await page.goto(BASE + "/dashboard/trips/new");
+  ok("incomplete profile cannot open the publish page", page.url().includes("/auth/complete-profile"), page.url());
   await page.locator('form button[type="submit"]').click();
   await page.locator('[role="alert"]').first().waitFor({ timeout: 15000 }).catch(() => {});
   ok("completion without avatar is refused", page.url().includes("/auth/complete-profile") && (await page.locator('[role="alert"]').count()) > 0, page.url());
@@ -99,7 +115,7 @@ async function main() {
     await pub.goto(BASE + `/trips/${id}`);
     const body = await pub.locator("main").innerText();
     ok("public trip page shows route", /El Fahs/.test(body) && /Tunis/.test(body), body.slice(0, 300));
-    ok("public trip page shows the driver's phone", (await pub.locator('a[href="tel:+21622123456"]').count()) > 0);
+    ok("public trip page hides the driver's phone", (await pub.locator('a[href^="tel:"]').count()) === 0);
     ok("public trip page shows price", /8/.test(body));
     await pub.goto(BASE + "/search?from=el-fahs&to=tunis");
     ok("trip appears in search", (await pub.locator(`a[href="/trips/${id}"]`).count()) > 0);

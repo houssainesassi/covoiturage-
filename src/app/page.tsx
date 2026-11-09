@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Banknote, Car, CirclePlus, Flag, Landmark, ListChecks, MapPin, MessageCircle, Phone, Search, Star, UserCheck, Users } from "lucide-react";
+import { ArrowRight, Banknote, Car, CirclePlus, Flag, ListChecks, MapPin, MessageCircle, Phone, Search, Star, UserCheck, Users } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getLocations } from "@/lib/locations";
 import { toLite } from "@/lib/location-lite";
@@ -8,7 +8,7 @@ import { site } from "@/lib/site";
 import { fmt, formatNumber, formatPrice, plural } from "@/lib/i18n/format";
 import { locName } from "@/lib/names";
 import { routeLabel } from "@/lib/notifications";
-import { TRIP_CARD_SELECT, toCard, withDriverPhones } from "@/lib/queries";
+import { TRIP_CARD_SELECT, toCard } from "@/lib/queries";
 import { SearchForm } from "@/components/search/search-form";
 import { TripCard } from "@/components/trips/trip-card";
 import { ButtonLink } from "@/components/ui/button";
@@ -34,8 +34,8 @@ export default async function HomePage() {
   const { data: past } = !loadError && (recent ?? []).length === 0
     ? await supabase.from("trips").select(TRIP_CARD_SELECT).eq("status", "completed").order("departure_at", { ascending: false }).limit(6)
     : { data: null };
-  const offers = await withDriverPhones(supabase, (recent ?? []).map(toCard));
-  const pastCards = await withDriverPhones(supabase, (past ?? []).map(toCard));
+  const offers = (recent ?? []).map(toCard);
+  const pastCards = (past ?? []).map(toCard);
 
   const routeStats = new Map<string, { count: number; min: number }>();
   const destStats = new Map<string, number>();
@@ -237,25 +237,19 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* About El Fahs */}
+      {/* Zaghouan delegations */}
       <section id="el-fahs" className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-        <div className="grid gap-8 lg:grid-cols-[1.3fr_1fr]">
-          <div>
-            <h2 className="flex items-center gap-2 text-2xl font-bold tracking-tight sm:text-3xl"><Landmark className="size-7 text-brand-600" aria-hidden />{d.home.aboutTitle}</h2>
-            <div className="mt-4 space-y-3 text-slate-600">{d.home.aboutBody.map((p) => <p key={p}>{p}</p>)}</div>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[var(--shadow-card)]">
-            <h3 className="font-semibold">{d.home.delegationsTitle}</h3>
-            <ul className="mt-4 grid grid-cols-2 gap-2">
-              {delegations.map((l) => (
-                <li key={l.id}>
-                  <Link href={`/search?from=${l.slug}`} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-brand-50 hover:text-brand-800">
-                    <MapPin className="size-4 text-brand-600" aria-hidden />{locName(l, locale)}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[var(--shadow-card)]">
+          <h3 className="font-semibold">{d.home.delegationsTitle}</h3>
+          <ul className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+            {delegations.map((l) => (
+              <li key={l.id}>
+                <Link href={`/search?from=${l.slug}`} className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-brand-50 hover:text-brand-800">
+                  <MapPin className="size-4 text-brand-600" aria-hidden />{locName(l, locale)}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 

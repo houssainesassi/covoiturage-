@@ -1,7 +1,8 @@
 /**
  * Tunisian phone numbers: 8 national digits, country code +216.
- * Mobile prefixes 2x (Ooredoo), 4x (Lycamobile), 5x (Orange), 9x (Tunisie Telecom);
- * fixed lines 3x / 7x.
+ * First digit 2-9, the same rule as the profile_private check from migration 1.
+ * Do not narrow it (e.g. to exclude 6 or 8) without confirming the current INT
+ * numbering plan: see supabase/ROLLOUT.md.
  */
 export const TN_PHONE_REGEX = /^\+216[2-9]\d{7}$/;
 

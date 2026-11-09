@@ -40,11 +40,11 @@ export function VehicleForm({ userId, vehicle }: { userId: string; vehicle?: Veh
       <Card className="space-y-5 p-5 sm:p-6">
         <input type="hidden" name="photos" value={JSON.stringify(photos)} />
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={d.vehicles.type} htmlFor="type"><Select id="type" name="type" defaultValue={vehicle?.type ?? "sedan"}>{Object.entries(d.vehicles.types).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Select></Field>
+          <Field label={d.vehicles.type} htmlFor="type" optional={d.common.optional}><Select id="type" name="type" defaultValue={vehicle?.type ?? ""}><option value="">—</option>{Object.entries(d.vehicles.types).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Select></Field>
           <Field label={d.vehicles.seats} htmlFor="seats" hint={d.vehicles.seatsHint} error={err("seats")}><Select id="seats" name="seats" defaultValue={String(vehicle?.seats ?? 4)}>{[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n}</option>)}</Select></Field>
-          <Field label={d.vehicles.brand} htmlFor="brand" error={err("brand")}><Input id="brand" name="brand" required maxLength={50} defaultValue={vehicle?.brand} placeholder="Peugeot, Renault, Kia…" /></Field>
+          <Field label={d.vehicles.brand} htmlFor="brand" optional={d.common.optional} error={err("brand")}><Input id="brand" name="brand" maxLength={50} defaultValue={vehicle?.brand ?? ""} placeholder="Peugeot, Renault, Kia…" /></Field>
           <Field label={d.vehicles.model} htmlFor="model" error={err("model")}><Input id="model" name="model" required maxLength={50} defaultValue={vehicle?.model} /></Field>
-          <Field label={d.vehicles.color} htmlFor="color" error={err("color")}><Input id="color" name="color" required maxLength={30} defaultValue={vehicle?.color} /></Field>
+          <Field label={d.vehicles.color} htmlFor="color" optional={d.common.optional} error={err("color")}><Input id="color" name="color" maxLength={30} defaultValue={vehicle?.color ?? ""} /></Field>
           <Field label={d.vehicles.year} htmlFor="year" optional={d.common.optional} error={err("year")}><Input id="year" name="year" type="number" min={1970} max={new Date().getFullYear() + 1} defaultValue={vehicle?.year ?? ""} /></Field>
           <Field label={d.vehicles.plate} htmlFor="plate" hint={d.vehicles.plateHint} optional={d.common.optional} className="sm:col-span-2"><Input id="plate" name="plate" maxLength={20} defaultValue={vehicle?.plate_number ?? ""} placeholder="215 تونس 1234" /></Field>
         </div>

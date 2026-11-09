@@ -73,7 +73,6 @@ export type Database = {
           preferred_locale: Database["public"]["Enums"]["app_locale"];
           role: Database["public"]["Enums"]["user_role"];
           status: Database["public"]["Enums"]["account_status"];
-          suspended_reason: string | null;
           rating_avg: number;
           rating_count: number;
           trips_driven: number;
@@ -112,7 +111,7 @@ export type Database = {
         Relationships: [Rel<"profiles_city_id_fkey", "city_id", "locations">];
       };
       profile_private: {
-        Row: { id: string; phone: string | null; date_of_birth: string | null; created_at: string; updated_at: string };
+        Row: { id: string; phone: string | null; date_of_birth: string | null; suspended_reason: string | null; created_at: string; updated_at: string };
         Insert: { id: string; phone?: string | null; date_of_birth?: string | null };
         Update: { phone?: string | null; date_of_birth?: string | null };
         Relationships: [Rel<"profile_private_id_fkey", "id", "profiles", true>];
@@ -121,10 +120,10 @@ export type Database = {
         Row: {
           id: string;
           owner_id: string;
-          type: Database["public"]["Enums"]["vehicle_type"];
-          brand: string;
+          type: Database["public"]["Enums"]["vehicle_type"] | null;
+          brand: string | null;
           model: string;
-          color: string;
+          color: string | null;
           year: number | null;
           seats: number;
           plate_number: string | null;
@@ -137,20 +136,20 @@ export type Database = {
         Insert: {
           id?: string;
           owner_id: string;
-          type?: Database["public"]["Enums"]["vehicle_type"];
-          brand: string;
+          type?: Database["public"]["Enums"]["vehicle_type"] | null;
+          brand?: string | null;
           model: string;
-          color: string;
+          color?: string | null;
           year?: number | null;
           seats: number;
           plate_number?: string | null;
           photo_paths?: string[];
         };
         Update: {
-          type?: Database["public"]["Enums"]["vehicle_type"];
-          brand?: string;
+          type?: Database["public"]["Enums"]["vehicle_type"] | null;
+          brand?: string | null;
           model?: string;
-          color?: string;
+          color?: string | null;
           year?: number | null;
           seats?: number;
           plate_number?: string | null;
@@ -428,10 +427,6 @@ export type Database = {
         Returns: { conversation_id: string; unread: number }[];
       };
       my_profile_complete: { Args: Record<string, never>; Returns: boolean };
-      get_driver_phones: {
-        Args: { p_driver_ids: string[] };
-        Returns: { driver_id: string; phone: string }[];
-      };
       get_trip_contacts: {
         Args: { p_trip_id: string };
         Returns: { user_id: string; full_name: string; phone: string | null; role: string; plate_number: string | null }[];

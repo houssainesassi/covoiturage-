@@ -12,7 +12,7 @@ export async function saveTripAction(tripId: string | null, _: ActionResult | nu
   if ("error" in ctx) return ctx.error;
   const { supabase, userId } = ctx;
 
-  // Passengers must be able to call the driver: no valid phone number, no ride.
+  // Confirmed passengers must be able to call the driver: no valid phone number, no ride.
   const { data: priv, error: phoneError } = await supabase.from("profile_private").select("phone").eq("id", userId).maybeSingle();
   if (phoneError) return fail(toErrorCode(phoneError));
   if (!priv?.phone || !TN_PHONE_REGEX.test(priv.phone)) return fail("publish_phone_required");
@@ -29,8 +29,8 @@ export async function saveTripAction(tripId: string | null, _: ActionResult | nu
   let vehicleId: string | null = v.vehicleId && v.vehicleId !== "new" && v.vehicleId !== "" ? v.vehicleId : null;
   if (v.vehicleId === "new") {
     const vp = vehicleSchema.safeParse({
-      type: fd.get("vType"), brand: fd.get("vBrand"), model: fd.get("vModel"),
-      color: fd.get("vColor"), year: fd.get("vYear") || undefined, seats: fd.get("vSeats"), plate: fd.get("vPlate") || undefined,
+      type: fd.get("vType"), brand: fd.get("vBrand") || undefined, model: fd.get("vModel"),
+      color: fd.get("vColor") || undefined, year: fd.get("vYear") || undefined, seats: fd.get("vSeats"), plate: fd.get("vPlate") || undefined,
     });
     if (!vp.success) {
       const fields: Record<string, ErrorCode> = {};

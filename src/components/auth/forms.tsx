@@ -1,14 +1,17 @@
 "use client";
-import { useFormAction } from "@/lib/use-form-action";
+import { useFormAction, withNetworkError } from "@/lib/use-form-action";
 import Link from "next/link";
 import { forgotPasswordAction, loginAction, registerAction, updatePasswordAction } from "@/actions/auth";
 import { useI18n } from "@/lib/i18n/client";
 import { Checkbox, Field, FormError, Input } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/client";
 
+const login = withNetworkError(loginAction);
+const register = withNetworkError(registerAction);
+
 export function LoginForm({ next, notice }: { next?: string; notice?: string }) {
   const { d } = useI18n();
-  const [state, action, pending] = useFormAction(loginAction);
+  const [state, action, pending] = useFormAction(login);
   return (
     <form onSubmit={action} className="space-y-4">
       {notice && <p className="rounded-xl bg-brand-50 p-3 text-sm text-brand-800">{notice}</p>}
@@ -28,7 +31,7 @@ export function LoginForm({ next, notice }: { next?: string; notice?: string }) 
 
 export function RegisterForm({ next }: { next?: string }) {
   const { d } = useI18n();
-  const [state, action, pending] = useFormAction(registerAction);
+  const [state, action, pending] = useFormAction(register);
   const err = (k: string) => (state && !state.ok && state.fields?.[k] ? d.errors[state.fields[k]] : undefined);
   return (
     <form onSubmit={action} className="space-y-4" noValidate>

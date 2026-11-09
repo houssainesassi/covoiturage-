@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { Camera, Loader2 } from "lucide-react";
 import { completeProfileAction } from "@/actions/profile";
@@ -67,6 +68,7 @@ export function CompleteProfileForm({ userId, next, fullName, avatarPath, phone 
       </Field>
       {state && !state.ok && !state.fields && <FormError message={d.errors[state.error]} />}
       <Button type="submit" size="lg" className="w-full" loading={pending} disabled={uploading}>{d.completeProfile.cta}</Button>
+      <Link href={next.startsWith("/dashboard/trips/new") ? "/" : next} className="block text-center text-sm font-semibold text-slate-600 underline underline-offset-2">{d.completeProfile.later}</Link>
     </form>
   );
 }

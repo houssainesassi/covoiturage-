@@ -71,10 +71,10 @@ export const tripSchema = z.object({
 });
 
 export const vehicleSchema = z.object({
-  type: z.enum(["sedan", "hatchback", "suv", "van", "minibus", "pickup", "other"]),
-  brand: trimmed(50).min(1),
+  type: z.preprocess((v) => v || null, z.enum(["sedan", "hatchback", "suv", "van", "minibus", "pickup", "other"]).nullable()),
+  brand: optionalText(50),
   model: trimmed(50).min(1),
-  color: trimmed(30).min(1),
+  color: optionalText(30),
   year: z.coerce.number().int().min(1970).max(new Date().getFullYear() + 1).optional().catch(undefined),
   seats: z.coerce.number().int().min(1).max(8),
   plate: optionalText(20),

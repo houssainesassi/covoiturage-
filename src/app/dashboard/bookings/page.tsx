@@ -35,9 +35,12 @@ export default async function BookingsPage({ searchParams }: PageProps<"/dashboa
     : q.order("created_at", { ascending: false }).limit(100);
   const [{ data: raw }, { data: pending }] = await Promise.all([q, supabase.rpc("pending_reviews")]);
   const bookings = tab === "upcoming" ? raw : (raw ?? []).filter((b) => !["pending", "confirmed", "rejected"].includes(b.status) || b.trip!.departure_at <= now);
-  const driverIds = [...new Set((bookings ?? []).filter((b) => b.trip!.departure_at > now).map((b) => b.trip!.driver?.id).filter((id): id is string => !!id))];
-  const { data: phones } = driverIds.length ? await supabase.rpc("get_driver_phones", { p_driver_ids: driverIds }) : { data: null };
-  const phoneOf = new Map((phones ?? []).map((p) => [p.driver_id, p.phone]));
+  // get_trip_contacts only returns the driver's number for a confirmed booking.
+  const confirmedTripIds = [...new Set((bookings ?? []).filter((b) => b.status === "confirmed" && b.trip!.departure_at > now).map((b) => b.trip!.id))];
+  const phoneOf = new Map(await Promise.all(confirmedTripIds.map(async (id) => {
+    const { data } = await supabase.rpc("get_trip_contacts", { p_trip_id: id });
+    return [id, data?.find((c) => c.role === "driver")?.phone ?? null] as const;
+  })));
   const toReview = new Set((pending ?? []).filter((p) => p.reviewee_role === "driver").map((p) => p.trip_id));
 
   return (
@@ -51,7 +54,7 @@ export default async function BookingsPage({ searchParams }: PageProps<"/dashboa
           {bookings!.map((b) => {
             const t = b.trip!;
             const active = ["pending", "confirmed"].includes(b.status) && t.departure_at > now;
-            const phone = active && t.driver ? phoneOf.get(t.driver.id) : null;
+            const phone = active ? phoneOf.get(t.id) : null;
             return (
               <li key={b.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[var(--shadow-card)] sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
