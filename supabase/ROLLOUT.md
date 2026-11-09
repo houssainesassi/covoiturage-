@@ -288,12 +288,35 @@ The phone number is asked in both forms. Either verified email or verified phone
 
 Until the Phone provider is configured, choosing the phone method fails with "Impossible d'envoyer le SMS". Do not deploy before the SMS provider works.
 
-### Rollout order
+### Sign-up guard
 
-1. Configure the SMS provider and test an SMS in the dashboard.
-2. Apply migrations 14 and 15 (`npx supabase db push`).
-3. Select the Before User Created hook.
-4. Deploy the app.
-5. Real test with your own SIM: register by phone → SMS arrives → wrong code refused → correct code → profile completion; log out; log in with the number; forgot password by phone; register again with the same number → "déjà vérifié". Then the same for email (needs SMTP).
+The app reads Supabase's public `/auth/v1/settings` before every sign-up. A method is offered only if its provider is on **and** Supabase would not auto-confirm it (`mailer_autoconfirm` / `phone_autoconfirm` false); otherwise it shows "Momentanément indisponible". If Auth still returns a session at sign-up, the user is signed out and refused. If the settings can't be read, sign-up is closed.
 
-Rollback: `supabase/rollback/20261109000015_verification_choice.down.sql`, then 14. Phone accounts created in the meantime keep working for sign-in and keep their data. After the rollback of 15 they still pass the old check, because their number is SMS-verified.
+Live on 2026-11-09: `mailer_autoconfirm: true`, phone provider off. **Deploying now closes sign-up on both methods** until the steps below are done. Existing users still log in.
+
+The guard covers the app only. Anyone can call the Supabase Auth API directly, so the dashboard settings are what actually enforce verification.
+
+### Runbook (each step after R0 is a CHANGE and needs approval)
+
+| # | Where | Exact action | Check before going on |
+|---|-------|--------------|-----------------------|
+| R0 | Local | `npm run check` and `npx tsx scripts/db/migration-safety.ts` | 0 failed |
+| R1 | Supabase → Database → Backups | Take or confirm a backup; run `supabase/preflight.sql` (section C) | Counts recorded |
+| R2 | Auth → SMTP Settings | Custom SMTP on: host, port 587, user, password, sender `no-reply@<domain>`, name `Wasalni`; minimum interval 60 s | Test email reaches Gmail and Outlook, not spam |
+| R3 | Twilio console | Messaging Geo Permissions: **Tunisia only**. Fraud Guard / SMS pumping protection on. Spend alert set. | Test SMS from Twilio to your SIM |
+| R4 | Auth → Providers → Phone | Enable Phone provider; SMS provider Twilio (Account SID, Auth Token, Messaging Service SID); **Enable phone confirmations on**; SMS OTP expiry 300; OTP length 6; message `Wasalni : votre code est {{ .Code }}`; **Test phone numbers: none** | `curl …/auth/v1/settings`: `external.phone` true, `phone_autoconfirm` false |
+| R5 | Auth → Rate Limits | SMS per hour: 30 to start (caps the cost of abuse). Emails per hour: what your SMTP plan allows. Leave verify and sign-up limits at defaults. | Values saved |
+| R6 | Auth → URL Configuration | Site URL = production domain; redirect URLs include `https://<domain>/auth/callback` | |
+| R7 | Vercel | Deploy the approved commits. Sign-up shows both methods unavailable until R9. | `/`, `/auth/login`, existing user login + bookings OK |
+| R8 | Database | `npx supabase db push` (migrations 8 to 15 in order; decide on 12 and 13 first, see below). Then `supabase/postflight.sql`. | `npx supabase migration list`: all applied; postflight as in D3 |
+| R9 | Auth → Email Templates → Confirm signup | Paste `supabase/templates/confirm-signup.html` | |
+| R10 | Auth → Providers → Email | **Confirm email on.** Email OTP length 6. Keep expiry. | `mailer_autoconfirm` false; register page shows both methods |
+| R11 | Auth → Hooks → Before User Created | Postgres function `public.hook_before_user_created`, enabled | Phone sign-up with `+33…` via API is refused 403; +216 and email accepted |
+| R12 | Production, your own SIM and inbox | Full test list in "6. How to test" (phone sign-up, wrong code, correct code, login by number, reset by SMS, duplicate number; same for email; existing user books) | All pass; delete test accounts |
+| R13 | Logs | 24 h: Auth logs for 429, `sms_send_failed`, `over_sms_send_rate_limit`; Vercel for `[auth]` lines; Twilio spend | No anomalies |
+
+Order matters: the app goes out before the migrations (R7 before R8) because the old app cannot handle the new database checks. Migrations 14 and 15 go out together: with 14 alone, users without an SMS-verified phone cannot book.
+
+Undecided before R8: migration 12 (optional vehicle details) and migration 13 (private suspension reason) were "kept but not applied" on 2026-11-08. `db push` applies every pending file, so either approve them or run 8-11 and 14-15 by hand in the SQL editor in that order.
+
+Rollback: if email or SMS delivery fails, turning Confirm email or phone confirmations off closes that sign-up method in the app (the guard). Existing users keep logging in. An older app version has no guard, so before a Vercel Instant Rollback, decide whether sign-up without codes is acceptable for that time. Database: `supabase/rollback/` in reverse order (15 first).

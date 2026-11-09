@@ -11,7 +11,7 @@ const KNOWN = new Set<string>([
   "invalid_vehicle_year", "invalid_rating", "trip_not_completed", "review_window_closed", "not_participant",
   "duplicate_review", "cannot_moderate_self", "user_not_found", "report_not_found", "review_not_found",
   "message_not_found", "profile_incomplete", "avatar_required", "phone_required", "phone_unverified",
-  "account_unverified",
+  "account_unverified", "verification_unavailable",
 ]);
 
 type AnyError = { name?: string; message?: string; code?: string; status?: number } | null | undefined;

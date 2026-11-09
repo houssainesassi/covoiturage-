@@ -6,6 +6,7 @@ import { fail, toErrorCode, type ActionResult } from "@/lib/errors";
 import { loginSchema, passwordSchema, registerSchema } from "@/lib/validation";
 import { normalizeTunisianPhone } from "@/lib/phone";
 import { parseMethod } from "@/lib/verification";
+import { verificationAvailability } from "@/lib/auth-settings";
 import { sendPhoneCode, signupSmsAllowed, smsHourlyAllowed, verifyPhoneUrl } from "@/lib/phone-otp";
 import { savePrivateProfile } from "./_util";
 import { getOrigin, getClientIp } from "@/lib/request";
@@ -79,6 +80,8 @@ export async function registerAction(_: ActionResult | null, fd: FormData): Prom
   if (blocked) return blocked;
   const method = parseMethod(fd.get("method"));
   if (!method) return fail("validation");
+  // Never create an account Supabase would confirm without a code.
+  if (!(await verificationAvailability())[method]) return fail("verification_unavailable");
   const raw = {
     fullName: fd.get("fullName"),
     // The email is asked only when the user chose to verify by email.
@@ -119,9 +122,10 @@ export async function registerAction(_: ActionResult | null, fd: FormData): Prom
     // A number already registered comes back as a user without identities.
     if (res.data.user && res.data.user.identities?.length === 0) return fail("phone_taken", { phone: "phone_taken" });
     if (res.data.session) {
-      console.error("[auth] phone signup skipped SMS verification: enable phone confirmations in Supabase");
-      revalidatePath("/", "layout");
-      redirect(completeProfileUrl(after, "phone_verified"));
+      // Auto-confirmed (setting changed after the check): do not let it in.
+      console.error("[auth] phone signup was auto-confirmed without an SMS code: enable phone confirmations in Supabase", res.data.user?.id);
+      await supabase.auth.signOut();
+      return fail("verification_unavailable");
     }
     redirect(verifySmsUrl(phone, after));
   }
@@ -144,10 +148,10 @@ export async function registerAction(_: ActionResult | null, fd: FormData): Prom
   // With email confirmation enabled, an existing address returns a user without identities.
   if (res.data.user && res.data.user.identities?.length === 0) return fail("email_taken", { email: "email_taken" });
   if (res.data.session) {
-    // A session here means Supabase auto-confirmed the account and sent no code.
-    console.error("[auth] signup skipped email verification: enable Confirm email in Supabase");
-    revalidatePath("/", "layout");
-    redirect(completeProfileUrl(after, "verified"));
+    // Auto-confirmed (setting changed after the check): do not let it in.
+    console.error("[auth] email signup was auto-confirmed without a code: enable Confirm email in Supabase", res.data.user?.id);
+    await supabase.auth.signOut();
+    return fail("verification_unavailable");
   }
   redirect(verifyUrl(email, after));
 }
