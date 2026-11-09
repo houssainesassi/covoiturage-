@@ -185,7 +185,7 @@ export function TripForm({ tripId, locations, vehicles, initial, bookedSeats = 0
 
       {state && !state.ok && <FormError message={d.errors[state.error]} />}
       {state && !state.ok && state.error === "publish_phone_required" && <Link href="/dashboard/profile" className="block text-sm font-semibold text-brand-700 underline">{d.nav.profile}</Link>}
-      {state && !state.ok && state.error === "phone_unverified" && <Link href="/auth/verify-phone?next=%2Fdashboard%2Ftrips%2Fnew" className="block text-sm font-semibold text-brand-700 underline">{d.trip.verifyPhoneCta}</Link>}
+      {state && !state.ok && (state.error === "phone_unverified" || state.error === "account_unverified") && <Link href="/auth/verify-phone?next=%2Fdashboard%2Ftrips%2Fnew" className="block text-sm font-semibold text-brand-700 underline">{d.trip.verifyPhoneCta}</Link>}
       <div className="flex justify-end">
         <SubmitButton pending={pending} size="lg" className="w-full sm:w-auto" pendingLabel={d.common.saving}>{tripId ? d.tripForm.submitEdit : d.tripForm.submitNew}</SubmitButton>
       </div>

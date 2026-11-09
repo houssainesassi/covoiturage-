@@ -11,6 +11,7 @@ const KNOWN = new Set<string>([
   "invalid_vehicle_year", "invalid_rating", "trip_not_completed", "review_window_closed", "not_participant",
   "duplicate_review", "cannot_moderate_self", "user_not_found", "report_not_found", "review_not_found",
   "message_not_found", "profile_incomplete", "avatar_required", "phone_required", "phone_unverified",
+  "account_unverified",
 ]);
 
 type AnyError = { name?: string; message?: string; code?: string; status?: number } | null | undefined;
@@ -24,6 +25,7 @@ export function toErrorCode(error: AnyError): ErrorCode {
   switch (error.code) {
     case "invalid_credentials": return "invalid_credentials";
     case "email_not_confirmed": return "email_not_confirmed";
+    case "phone_not_confirmed": return "phone_not_confirmed";
     // Supabase Auth reports wrong, expired and already-used codes with this same error.
     case "otp_expired": return "otp_invalid";
     case "email_address_not_authorized": return "email_send_failed";
@@ -46,6 +48,7 @@ export function toErrorCode(error: AnyError): ErrorCode {
   }
   if (/invalid login credentials/i.test(msg)) return "invalid_credentials";
   if (/email not confirmed/i.test(msg)) return "email_not_confirmed";
+  if (/phone not confirmed/i.test(msg)) return "phone_not_confirmed";
   if (/token has expired|expired or is invalid/i.test(msg)) return "otp_invalid";
   if (/already registered/i.test(msg)) return "email_taken";
   if (/error sending (confirmation|recovery|magic link)? ?email/i.test(msg)) return "email_send_failed";

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { isPhoneVerified } from "@/lib/phone";
+import { isAccountVerified } from "@/lib/verification";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -64,8 +64,8 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
     user ? supabase.rpc("get_trip_contacts", { p_trip_id: trip.id }) : Promise.resolve({ data: null }),
     user && !isOwner ? supabase.rpc("my_profile_complete") : Promise.resolve({ data: null }),
   ]);
-  const { data: myPrivate } = user && !isOwner ? await supabase.from("profile_private").select("phone").eq("id", user.id).maybeSingle() : { data: null };
-  const needsPhone = Boolean(user && !isOwner && !isPhoneVerified(user, myPrivate?.phone));
+  // Normally always verified once signed in: Supabase refuses sign-in before the code.
+  const needsPhone = Boolean(user && !isOwner && !isAccountVerified(user));
   const myBooking = myBookingRes.data && ["pending", "confirmed", "completed"].includes(myBookingRes.data.status) ? myBookingRes.data : null;
   const driverContact = (contactsRes.data ?? []).find((c) => c.role === "driver");
   const driverPhone = driverContact?.phone ?? null;

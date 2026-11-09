@@ -15,7 +15,7 @@ const root = path.resolve(__dirname, "../..");
 const migDir = path.join(root, "supabase/migrations");
 const rollbackDir = path.join(root, "supabase/rollback");
 const PORT = 55000 + Math.floor(Math.random() * 500);
-const NEW_VERSIONS = /^(202611080000(08|09|10|11|12|13)|20261109000014)_/;
+const NEW_VERSIONS = /^(202611080000(08|09|10|11|12|13)|2026110900001[45])_/;
 
 let failed = 0;
 let passed = 0;
@@ -36,8 +36,8 @@ async function run(pool: Pool) {
   };
 
   console.log("Migration files");
-  ok("8 to 14 are all present, in order", newFiles.length === 7 && newFiles.join() === [...newFiles].sort().join(), newFiles);
-  ok("they are the last migrations", allFiles.slice(-7).join() === newFiles.join(), allFiles);
+  ok("8 to 15 are all present, in order", newFiles.length === 8 && newFiles.join() === [...newFiles].sort().join(), newFiles);
+  ok("they are the last migrations", allFiles.slice(-8).join() === newFiles.join(), allFiles);
 
   console.log("Building a database at migration 7");
   await pool.query(sql(path.join(root, "scripts/db/supabase-shim.sql")));
@@ -155,10 +155,8 @@ async function run(pool: Pool) {
   ok("an incomplete user's existing booking stays confirmed", (await one("select status::text s from public.bookings where id = $1", [booking])).s === "confirmed");
   await addAvatar(blankName);
   ok("adding a photo completes a user whose name and phone were recovered", (await profile(blankName)).complete === true);
-  ok("with an unverified phone that user is still refused a new booking", (await bookAs(blankName)) === "phone_unverified");
+  ok("with a confirmed email and an unverified phone that user can book (migration 15)", (await bookAs(blankName)) === "booked");
   ok("and keeps the existing booking", (await one("select status::text s from public.bookings where id = $1", [booking])).s === "confirmed");
-  await pool.query("update auth.users u set phone = substr(pp.phone, 2), phone_confirmed_at = now() from public.profile_private pp where pp.id = u.id and u.id = $1", [blankName]);
-  ok("that user can book once the SMS code is verified", (await bookAs(blankName)) === "booked");
   await addAvatar(passenger);
   ok("a passenger with a booking can complete their profile", (await profile(passenger)).complete === true);
   ok("completing it leaves their booking unchanged", (await one("select status::text s, passenger_id::text p from public.bookings where id = $1", [booking])).s === "confirmed");
@@ -204,9 +202,9 @@ async function run(pool: Pool) {
   const pending = await signup("pending@t.tn", { full_name: "Pending", phone: "+21655000011" }, false);
   ok("a new unverified signup has no profile", (await one("select count(*)::int n from public.profiles where id = $1", [pending])).n === 0);
 
-  console.log("Rollback (14, 13, 12, 10, 9, 8)");
+  console.log("Rollback (15, 14, 13, 12, 10, 9, 8)");
   const beforeRollback = await snapshot();
-  for (const v of ["20261109000014_phone_verification", "20261108000013_private_suspension_reason", "20261108000012_optional_vehicle_details", "20261108000010_email_verification", "20261108000009_driver_phone_access", "20261108000008_profile_completion"]) {
+  for (const v of ["20261109000015_verification_choice", "20261109000014_phone_verification", "20261108000013_private_suspension_reason", "20261108000012_optional_vehicle_details", "20261108000010_email_verification", "20261108000009_driver_phone_access", "20261108000008_profile_completion"]) {
     await pool.query(sql(path.join(rollbackDir, `${v}.down.sql`)));
   }
   ok("removes the migration 8 triggers and functions", (await triggerCount()) === 1 && (await one("select to_regprocedure('public.is_profile_complete(uuid)') r")).r === null, await triggerCount());

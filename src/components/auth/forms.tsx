@@ -3,11 +3,13 @@ import { useFormAction, withNetworkError } from "@/lib/use-form-action";
 import Link from "next/link";
 import { forgotPasswordAction, loginAction, registerAction, updatePasswordAction } from "@/actions/auth";
 import { useI18n } from "@/lib/i18n/client";
+import type { VerifyMethod } from "@/lib/verification";
 import { Checkbox, Field, FormError, Input } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/client";
 
 const login = withNetworkError(loginAction);
 const register = withNetworkError(registerAction);
+const forgot = withNetworkError(forgotPasswordAction);
 
 export function LoginForm({ next, notice }: { next?: string; notice?: string }) {
   const { d } = useI18n();
@@ -16,8 +18,8 @@ export function LoginForm({ next, notice }: { next?: string; notice?: string }) 
     <form onSubmit={action} className="space-y-4">
       {notice && <p className="rounded-xl bg-brand-50 p-3 text-sm text-brand-800">{notice}</p>}
       <input type="hidden" name="next" value={next ?? ""} />
-      <Field label={d.auth.email} htmlFor="email">
-        <Input id="email" name="email" type="email" autoComplete="email" required dir="ltr" />
+      <Field label={d.auth.identifier} htmlFor="identifier" hint={d.auth.identifierHint}>
+        <Input id="identifier" name="identifier" type="text" inputMode="email" autoComplete="username" autoCapitalize="none" spellCheck={false} required dir="ltr" />
       </Field>
       <Field label={d.auth.password} htmlFor="password">
         <Input id="password" name="password" type="password" autoComplete="current-password" required />
@@ -29,19 +31,22 @@ export function LoginForm({ next, notice }: { next?: string; notice?: string }) 
   );
 }
 
-export function RegisterForm({ next }: { next?: string }) {
+export function RegisterForm({ next, method }: { next?: string; method: VerifyMethod }) {
   const { d } = useI18n();
   const [state, action, pending] = useFormAction(register);
   const err = (k: string) => (state && !state.ok && state.fields?.[k] ? d.errors[state.fields[k]] : undefined);
   return (
     <form onSubmit={action} className="space-y-4" noValidate>
       <input type="hidden" name="next" value={next ?? ""} />
+      <input type="hidden" name="method" value={method} />
       <Field label={d.auth.fullName} htmlFor="fullName" error={err("fullName")}>
         <Input id="fullName" name="fullName" autoComplete="name" required minLength={2} maxLength={100} aria-invalid={!!err("fullName")} />
       </Field>
-      <Field label={d.auth.email} htmlFor="email" error={err("email")}>
-        <Input id="email" name="email" type="email" autoComplete="email" required dir="ltr" aria-invalid={!!err("email")} />
-      </Field>
+      {method === "email" && (
+        <Field label={d.auth.email} htmlFor="email" error={err("email")}>
+          <Input id="email" name="email" type="email" autoComplete="email" required dir="ltr" aria-invalid={!!err("email")} />
+        </Field>
+      )}
       <Field label={d.auth.phone} htmlFor="phone" error={err("phone")} hint={d.auth.phoneHint}>
         <div className="flex" dir="ltr">
           <span className="flex items-center rounded-s-xl border border-e-0 border-slate-300 bg-slate-50 px-3 text-sm text-slate-600">+216</span>
@@ -67,12 +72,12 @@ export function RegisterForm({ next }: { next?: string }) {
 
 export function ForgotForm() {
   const { d } = useI18n();
-  const [state, action, pending] = useFormAction(forgotPasswordAction);
+  const [state, action, pending] = useFormAction(forgot);
   if (state?.ok) return <p className="rounded-xl bg-brand-50 p-4 text-sm text-brand-800">{d.auth.resetSent}</p>;
   return (
     <form onSubmit={action} className="space-y-4">
-      <Field label={d.auth.email} htmlFor="email">
-        <Input id="email" name="email" type="email" autoComplete="email" required dir="ltr" />
+      <Field label={d.auth.identifier} htmlFor="identifier" hint={d.auth.identifierHint}>
+        <Input id="identifier" name="identifier" type="text" inputMode="email" autoComplete="username" autoCapitalize="none" spellCheck={false} required dir="ltr" />
       </Field>
       {state && !state.ok && <FormError message={d.errors[state.error]} />}
       <SubmitButton pending={pending} size="lg" className="w-full">{d.auth.sendResetLink}</SubmitButton>

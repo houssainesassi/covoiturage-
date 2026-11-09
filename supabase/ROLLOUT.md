@@ -258,3 +258,42 @@ Whether to ship it is a decision, because it was not part of this rollout's scop
 Tested on a throwaway PostgreSQL copy of the real migrations, with awkward legacy accounts: `scripts/db/migration-safety.ts`, and `scripts/e2e/ui-rollout.ts` on a stand-in. Accounts, roles, trips, bookings and chosen values are unchanged through apply, re-apply, rollback and re-apply. Incomplete users keep their existing bookings, can browse, and can complete their profile. Migration 11 fills in only blank values.
 
 **Not yet tested against real production data.** Steps B, C and D3 cover that.
+
+## Email-or-phone verification (migrations 14 and 15)
+
+**Status: not approved, not applied.** At sign-up the user chooses how to verify the account:
+
+| Method | Supabase calls | Signs in with |
+|--------|----------------|---------------|
+| Email | `signUp({ email, password })`, then `verifyOtp({ type: 'email' })` with the 6-digit email code | email + password |
+| Phone | `signUp({ phone, password })`, then `verifyOtp({ type: 'sms' })` with the 6-digit SMS code | +216 number + password |
+
+The phone number is asked in both forms. Either verified email or verified phone is enough to publish and book (migration 15, `account_unverified`). A phone account resets its password through `signInWithOtp({ phone, shouldCreateUser: false })` and an SMS code. Existing accounts all have a confirmed email, so they count as verified and keep working without any new step.
+
+`signInWithOtp` is not used for sign-up: with `shouldCreateUser` it makes passwordless accounts, and it silently signs in an existing user instead of reporting a duplicate.
+
+### Supabase settings (each one is a **CHANGE**)
+
+| Where | Setting | Value |
+|-------|---------|-------|
+| Auth → Providers → Phone | Enable phone provider | on |
+| same | SMS provider | Twilio, Twilio Verify, MessageBird, Vonage or Textlocal, with that provider's credentials. Check that it delivers to Tunisian (+216) numbers. |
+| same | Enable phone confirmations | on (otherwise numbers are accepted with no SMS, and the app reports `sms_send_failed`) |
+| same | SMS OTP length / expiry | 6 digits / 300 s (`SMS_CODE_TTL_SECONDS` in `src/lib/phone.ts`) |
+| same | SMS message | `Wasalni : votre code est {{ .Code }}` |
+| Auth → Rate limits | SMS sent per hour | Expected sign-ups and resets per hour, plus margin. The app also caps 5 SMS per number per hour. |
+| Auth → Hooks → Before User Created | Postgres function `public.hook_before_user_created` | Refuses sign-ups that have neither an email nor a +216 number (blocks SMS pumping to foreign numbers). Test the payload on staging first. |
+| Auth → Providers → Email | Confirm email, custom SMTP, template | As in A3, D4 and D5 above |
+| Auth → Bot and Abuse Protection | CAPTCHA | Recommended once phone sign-ups are open; needs app work, not done. |
+
+Until the Phone provider is configured, choosing the phone method fails with "Impossible d'envoyer le SMS". Do not deploy before the SMS provider works.
+
+### Rollout order
+
+1. Configure the SMS provider and test an SMS in the dashboard.
+2. Apply migrations 14 and 15 (`npx supabase db push`).
+3. Select the Before User Created hook.
+4. Deploy the app.
+5. Real test with your own SIM: register by phone → SMS arrives → wrong code refused → correct code → profile completion; log out; log in with the number; forgot password by phone; register again with the same number → "déjà vérifié". Then the same for email (needs SMTP).
+
+Rollback: `supabase/rollback/20261109000015_verification_choice.down.sql`, then 14. Phone accounts created in the meantime keep working for sign-in and keep their data. After the rollback of 15 they still pass the old check, because their number is SMS-verified.

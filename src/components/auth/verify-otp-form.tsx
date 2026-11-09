@@ -1,6 +1,6 @@
 "use client";
 import { startTransition, useActionState, useEffect, useRef, useState, type ClipboardEvent, type FormEvent, type KeyboardEvent } from "react";
-import { resendEmailOtpAction, resendPhoneOtpAction, verifyEmailOtpAction, verifyPhoneOtpAction } from "@/actions/auth";
+import { resendEmailOtpAction, resendPhoneOtpAction, resendSmsOtpAction, verifyEmailOtpAction, verifyPhoneOtpAction, verifySmsOtpAction } from "@/actions/auth";
 import { SMS_CODE_TTL_SECONDS, SMS_RESEND_SECONDS } from "@/lib/phone";
 import { withNetworkError } from "@/lib/use-form-action";
 import { useI18n } from "@/lib/i18n/client";
@@ -17,18 +17,24 @@ const EMPTY = Array<string>(LENGTH).fill("");
 const actions = {
   email: { verify: withNetworkError(verifyEmailOtpAction), resend: withNetworkError(resendEmailOtpAction) },
   phone: { verify: withNetworkError(verifyPhoneOtpAction), resend: withNetworkError(resendPhoneOtpAction) },
+  sms: { verify: withNetworkError(verifySmsOtpAction), resend: withNetworkError(resendSmsOtpAction) },
 };
 
 /** Keeps digits only; Arabic keyboards type ٠-٩, which the server would refuse. */
 const toDigits = (s: string) =>
   s.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x0660)).replace(/\D/g, "");
 
-/** 6-digit code screen for the email code (`email`) or the SMS code (`phone`, +216…). */
-export function VerifyOtpForm({ email, phone, next }: { email?: string; phone?: string; next: string }) {
+/**
+ * 6-digit code screen: the email code (`email`), the SMS code adding a number to
+ * the signed-in account (`phone`), or with `purpose` the SMS code of a phone
+ * account (sign-up confirmation or password reset, no session yet).
+ */
+export function VerifyOtpForm({ email, phone, next, purpose }: { email?: string; phone?: string; next: string; purpose?: "signup" | "recovery" }) {
   const { d } = useI18n();
   const channel = phone ? "phone" : "email";
   const target = { name: channel, value: (phone ?? email)! };
-  const { verify, resend } = actions[channel];
+  const { verify, resend } = actions[phone && purpose ? "sms" : channel];
+  const setPurpose = (fd: FormData) => purpose && fd.set("purpose", purpose);
   // When the current code was sent, to tell an expired SMS code from a wrong one.
   const sentAt = useRef(0);
   const [digits, setDigits] = useState(EMPTY);
@@ -79,6 +85,7 @@ export function VerifyOtpForm({ email, phone, next }: { email?: string; phone?: 
     fd.set(target.name, target.value);
     fd.set("next", next);
     fd.set("token", code);
+    setPurpose(fd);
     startTransition(() => dispatchVerify(fd));
   };
 
@@ -128,6 +135,7 @@ export function VerifyOtpForm({ email, phone, next }: { email?: string; phone?: 
   const onResend = () => {
     const fd = new FormData();
     fd.set(target.name, target.value);
+    setPurpose(fd);
     startTransition(() => dispatchResend(fd));
   };
 

@@ -7,8 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { site } from "@/lib/site";
 import { tunisDateKey, tunisTomorrowKey } from "@/lib/i18n/format";
 import { PageHeader } from "@/components/ui/card";
-import { TN_PHONE_REGEX, isPhoneVerified } from "@/lib/phone";
-import { verifyPhoneUrl } from "@/lib/phone-otp";
+import { TN_PHONE_REGEX } from "@/lib/phone";
 import { PhoneGate } from "@/components/trips/phone-gate";
 import { TripForm } from "@/components/trips/trip-form";
 
@@ -24,7 +23,6 @@ export default async function NewTripPage() {
   ]);
   if (complete === false) redirect(`/auth/complete-profile?next=${encodeURIComponent("/dashboard/trips/new")}`);
   const phone = priv?.phone && TN_PHONE_REGEX.test(priv.phone) ? priv.phone : null;
-  if (phone && !isPhoneVerified(user, phone)) redirect(verifyPhoneUrl("/dashboard/trips/new"));
   return (
     <div className="max-w-4xl">
       <PageHeader title={d.tripForm.newTitle} description={d.tripForm.newSubtitle} />

@@ -14,10 +14,11 @@ export const loginSchema = z.object({
   password: z.string().min(1).max(72),
 });
 
-export const registerSchema = z
-  .object({
+/** Sign-up form. The phone is always required; the email only for the email method. */
+export const registerSchema = (method: "email" | "phone") =>
+  z.object({
     fullName: trimmed(100).min(2),
-    email: z.string().trim().toLowerCase().email(),
+    email: method === "email" ? z.string().trim().toLowerCase().email() : z.undefined(),
     phone: z.string().trim().min(1).max(20),
     password: passwordSchema,
     confirm: z.string(),

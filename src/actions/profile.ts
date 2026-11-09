@@ -4,8 +4,6 @@ import { redirect } from "next/navigation";
 import { fail, toErrorCode, type ActionResult, type ErrorCode } from "@/lib/errors";
 import { completeProfileSchema, phoneField, profileSchema } from "@/lib/validation";
 import { safeNext } from "@/lib/utils";
-import { isPhoneVerified } from "@/lib/phone";
-import { startPhoneVerification } from "@/lib/phone-otp";
 import { authed, result, savePrivateProfile } from "./_util";
 
 const issueCode = (message: string): ErrorCode =>
@@ -101,8 +99,5 @@ export async function completeProfileAction(_: ActionResult | null, fd: FormData
   revalidatePath("/", "layout");
   const rawNext = safeNext(String(fd.get("next") ?? ""), "/");
   const next = rawNext.startsWith("/auth") ? "/" : rawNext;
-  // A new or changed number still needs its SMS code before publishing or booking.
-  const { data: u } = await supabase.auth.getUser();
-  if (u.user && !isPhoneVerified(u.user, v.phone)) redirect(await startPhoneVerification(supabase, u.user, v.phone, next));
   redirect(next);
 }

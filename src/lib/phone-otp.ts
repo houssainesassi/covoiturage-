@@ -21,6 +21,19 @@ function smsAllowed(userId: string, phone: string) {
   );
 }
 
+/**
+ * SMS to a phone account (sign-up code, resend, password reset), where there is
+ * no signed-in user yet: limited per number. Supabase's own limits apply too.
+ */
+export function signupSmsAllowed(phone: string) {
+  return rateLimit(`sms-cooldown:${phone}`, 1, (SMS_RESEND_SECONDS - 5) * 1000) && smsHourlyAllowed(phone);
+}
+
+/** Hourly cap only, for sign-up: Supabase itself refuses a 2nd SMS within 60 s (handled by the caller). */
+export function smsHourlyAllowed(phone: string) {
+  return rateLimit(`sms-phone:${phone}`, 5, HOUR);
+}
+
 export type SmsResult = { ok: true; alreadyVerified?: boolean } | { ok: false; error: ErrorCode };
 
 /**
@@ -50,12 +63,4 @@ export function verifyPhoneUrl(next: string, opts: { phone?: string; sent?: bool
   if (opts.error) q.set("error", opts.error);
   if (opts.emailVerified) q.set("email_verified", "1");
   return `/auth/verify-phone?${q}`;
-}
-
-/** Sends the first code right after sign-up / email verification and says where to go next. */
-export async function startPhoneVerification(supabase: ServerSupabase, user: User, phone: string | null, next: string, emailVerified = false) {
-  if (!phone) return verifyPhoneUrl(next, { emailVerified });
-  const sent = await sendPhoneCode(supabase, user, phone);
-  if (sent.ok && sent.alreadyVerified) return `/auth/complete-profile?next=${encodeURIComponent(safeNext(next, "/"))}`;
-  return sent.ok ? verifyPhoneUrl(next, { phone, sent: true, emailVerified }) : verifyPhoneUrl(next, { phone, error: sent.error, emailVerified });
 }

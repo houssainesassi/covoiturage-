@@ -4,8 +4,6 @@ import { getI18n } from "@/lib/i18n/server";
 import { getProfile, requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/utils";
-import { isPhoneVerified } from "@/lib/phone";
-import { verifyPhoneUrl } from "@/lib/phone-otp";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { CompleteProfileForm } from "@/components/auth/complete-profile-form";
 
@@ -24,8 +22,7 @@ export default async function CompleteProfilePage({ searchParams }: PageProps<"/
     supabase.from("profile_private").select("phone").eq("id", user.id).maybeSingle(),
     supabase.rpc("my_profile_complete"),
   ]);
-  // The SMS step comes after the profile fields; both are needed to publish or book.
-  if (complete) redirect(isPhoneVerified(user, priv?.phone) ? next : verifyPhoneUrl(next));
+  if (complete) redirect(next);
   const { d } = await getI18n();
   return (
     <AuthShell title={d.completeProfile.title} subtitle={d.completeProfile.subtitle}>
