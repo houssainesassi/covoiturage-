@@ -29,14 +29,11 @@ async function main() {
   console.log(`Sign up (${email})`);
   let page = await newPage();
   const submitRegister = async (phone: string) => {
-    await page.goto(BASE + "/auth/register");
-    await page.fill("#fullName", "Test Wasalni");
-    await page.fill("#email", email);
+    await page.goto(BASE + "/auth/register?method=phone");
     await page.fill("#phone", phone);
+    await page.fill("#fullName", "Test Wasalni");
     await page.fill("#password", password);
-    await page.fill("#confirm", password);
-    await page.check('input[name="terms"]');
-    await page.locator('button[type="submit"]').click();
+    await page.locator('form button[type="submit"]').click();
   };
   for (const [label, phone] of [["without a phone", ""], ["with an invalid phone", "12 345"], ["with a foreign phone", "+33 6 12 34 56 78"]]) {
     await submitRegister(phone);

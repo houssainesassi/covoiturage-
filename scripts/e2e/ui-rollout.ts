@@ -113,14 +113,12 @@ async function login(page: Page, email: string, password: string, next: string) 
   await waitForPath(page, next);
 }
 
-async function fillRegister(page: Page, phone: string) {
+async function fillRegister(page: Page) {
   await go(page, `/auth/register?next=${encodeURIComponent("/dashboard")}`);
-  await page.fill("#fullName", "UI Rollout Test");
+  await page.getByRole("button", { name: /e-?mail/i }).click();
   await page.fill("#email", EMAIL);
-  await page.fill("#phone", phone);
+  await page.fill("#fullName", "UI Rollout Test");
   await page.fill("#password", PASSWORD);
-  await page.fill("#confirm", PASSWORD);
-  await page.check('input[name="terms"]');
   await page.locator('form button[type="submit"]').click();
 }
 
@@ -169,12 +167,9 @@ async function main() {
 
   console.log("Signup");
   const page = await newPage(browser);
-  await fillRegister(page, "12 345 678");
-  await page.locator('#phone[aria-invalid="true"]').waitFor().catch(() => {});
-  ok("a number starting with 1 is refused", pathOf(page) === "/auth/register" && (await page.getAttribute("#phone", "aria-invalid")) === "true", page.url());
-  await fillRegister(page, SIX_PHONE);
+  await fillRegister(page);
   await waitForPath(page, "/auth/verify");
-  ok("a number starting with 6 is accepted and leads to the code page", pathOf(page) === "/auth/verify", page.url());
+  ok("email sign-up (no phone asked) leads to the code page", pathOf(page) === "/auth/verify", page.url());
   const boxes = page.locator('input[inputmode="numeric"]');
   ok("the code page has exactly 6 boxes", (await boxes.count()) === 6, await boxes.count());
   ok("the code page shows the address", (await page.locator("body").innerText()).includes(EMAIL));
@@ -196,12 +191,17 @@ async function main() {
   await page.locator('input[inputmode="numeric"]').first().waitFor();
   await page.waitForLoadState("networkidle").catch(() => {});
   await typeCode(page, code);
-  await waitForPath(page, "/auth/complete-profile");
-  ok("the correct code opens the profile step", pathOf(page) === "/auth/complete-profile", page.url());
+  await waitForPath(page, "/auth/welcome");
+  ok("the correct code opens the welcome screen", pathOf(page) === "/auth/welcome", page.url());
+  await go(page, "/auth/complete-profile?next=/dashboard");
 
   console.log("Avatar and onboarding");
   ok("the signup name is filled in", (await page.inputValue("#fullName")) === "UI Rollout Test");
-  ok("the signup phone is filled in", (await page.inputValue("#phone")) === SIX_PHONE, await page.inputValue("#phone"));
+  await page.fill("#phone", "12 345 678");
+  await page.locator('form button[type="submit"]').click();
+  await page.locator('#phone[aria-invalid="true"]').waitFor().catch(() => {});
+  ok("a number starting with 1 is refused", (await page.getAttribute("#phone", "aria-invalid")) === "true");
+  await page.fill("#phone", SIX_PHONE);
   await shot(page, "3-complete-profile");
   const submit = page.locator('form button[type="submit"]');
   await submit.click();

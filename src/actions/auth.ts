@@ -33,8 +33,15 @@ const verifyUrl = (email: string, next: string) =>
 const verifySmsUrl = (phone: string, next: string, purpose: "signup" | "recovery" = "signup") =>
   `/auth/verify?phone=${encodeURIComponent(phone)}&purpose=${purpose}&next=${encodeURIComponent(next)}`;
 
-const completeProfileUrl = (next: string, flag: "verified" | "phone_verified") =>
-  `/auth/complete-profile?${flag}=1&next=${encodeURIComponent(safeNext(next, "/"))}`;
+/**
+ * Where a new account lands once its code is verified: back to what the user was
+ * doing (a ride to book, the publish form), or the welcome screen. Photo and phone
+ * are asked later, only when booking or publishing needs them.
+ */
+const afterSignupUrl = (next: string) => {
+  const n = safeNext(next, "/");
+  return n === "/" || n === "/dashboard" || n.startsWith("/auth") ? "/auth/welcome" : n;
+};
 
 const phoneInput = (fd: FormData) => normalizeTunisianPhone(String(fd.get("phone") ?? ""));
 
@@ -84,43 +91,41 @@ export async function registerAction(_: ActionResult | null, fd: FormData): Prom
   if (!(await verificationAvailability())[method]) return fail("verification_unavailable");
   const raw = {
     fullName: fd.get("fullName"),
-    // The email is asked only when the user chose to verify by email.
-    email: method === "email" ? fd.get("email") : undefined,
-    phone: fd.get("phone") ?? "",
+    // Only the identifier of the chosen method is read.
+    email: method === "email" ? fd.get("email") ?? "" : undefined,
+    phone: method === "phone" ? fd.get("phone") ?? "" : undefined,
     password: fd.get("password"),
-    confirm: fd.get("confirm"),
-    terms: fd.get("terms"),
   };
   const parsed = registerSchema(method).safeParse(raw);
-  if (!parsed.success) {
+  const phone = method === "phone" ? normalizeTunisianPhone(String(raw.phone)) : null;
+  if (!parsed.success || (method === "phone" && !phone)) {
     const fields: Record<string, ReturnType<typeof toErrorCode>> = {};
-    for (const issue of parsed.error.issues) {
+    for (const issue of parsed.error?.issues ?? []) {
       const k = String(issue.path[0]);
-      fields[k] = k === "email" ? "invalid_email" : k === "password" ? "weak_password" : k === "terms" ? "terms_required" : k === "phone" ? "phone_required" : "validation";
+      fields[k] = k === "email" ? "invalid_email" : k === "password" ? "weak_password" : k === "phone" ? "invalid_phone" : "validation";
     }
-    if (!fields.phone && !normalizeTunisianPhone(String(raw.phone))) fields.phone = "invalid_phone";
-    return fail(fields.terms ?? "validation", fields);
+    if (method === "phone" && !phone) fields.phone = String(raw.phone).trim() ? "invalid_phone" : "phone_required";
+    return fail("validation", fields);
   }
   const v = parsed.data;
-  if (v.password !== v.confirm) return fail("password_mismatch", { confirm: "password_mismatch" });
-  const phone = normalizeTunisianPhone(v.phone);
-  if (!phone) return fail("invalid_phone", { phone: "invalid_phone" });
   const supabase = await createClient();
   const after = safeNext(String(fd.get("next") ?? ""), "/");
-  const data = { full_name: v.fullName, phone, locale: await getLocale() };
+  // Kept in the metadata until the code is verified; the profile is created then (migration 15).
+  const data = { full_name: v.fullName, ...(phone ? { phone } : {}), locale: await getLocale() };
 
-  if (method === "phone") {
+  if (phone) {
     if (!smsHourlyAllowed(phone)) return fail("rate_limited");
     // Supabase sends the 6-digit SMS code ("Confirm phone" on); verified with type 'sms'.
     const res = await supabase.auth.signUp({ phone, password: v.password, options: { data } });
     if (res.error) {
       if (res.error.code === "over_sms_send_rate_limit" && /after \d+ seconds?/i.test(res.error.message)) redirect(verifySmsUrl(phone, after));
       // Auth reports an existing phone account as "user_already_exists" too.
-      const code = toErrorCode(res.error) === "email_taken" ? "phone_taken" : toErrorCode(res.error);
-      return fail(code, code === "phone_taken" ? { phone: code } : undefined);
+      const authCode = toErrorCode(res.error);
+      const code = authCode === "email_taken" || authCode === "phone_taken" ? "phone_registered" : authCode;
+      return fail(code, code === "phone_registered" ? { phone: code } : undefined);
     }
     // A number already registered comes back as a user without identities.
-    if (res.data.user && res.data.user.identities?.length === 0) return fail("phone_taken", { phone: "phone_taken" });
+    if (res.data.user && res.data.user.identities?.length === 0) return fail("phone_registered", { phone: "phone_registered" });
     if (res.data.session) {
       // Auto-confirmed (setting changed after the check): do not let it in.
       console.error("[auth] phone signup was auto-confirmed without an SMS code: enable phone confirmations in Supabase", res.data.user?.id);
@@ -168,7 +173,7 @@ export async function verifyEmailOtpAction(_: ActionResult | null, fd: FormData)
   const { error } = await supabase.auth.verifyOtp({ email: email.data, token: token.data, type: "email" });
   if (error) return fail(toErrorCode(error));
   revalidatePath("/", "layout");
-  redirect(completeProfileUrl(String(fd.get("next") ?? ""), "verified"));
+  redirect(afterSignupUrl(String(fd.get("next") ?? "")));
 }
 
 /** SMS code of a phone account: confirms the sign-up, or signs in to reset the password. */
@@ -184,7 +189,7 @@ export async function verifySmsOtpAction(_: ActionResult | null, fd: FormData): 
   if (error) return fail(toErrorCode(error));
   revalidatePath("/", "layout");
   if (fd.get("purpose") === "recovery") redirect("/auth/reset-password");
-  redirect(completeProfileUrl(String(fd.get("next") ?? ""), "phone_verified"));
+  redirect(afterSignupUrl(String(fd.get("next") ?? "")));
 }
 
 export async function resendSmsOtpAction(_: ActionResult | null, fd: FormData): Promise<ActionResult> {

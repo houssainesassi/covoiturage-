@@ -63,20 +63,13 @@ async function main() {
   ok("wrong credentials show translated error", (await alert.innerText()).includes("incorrect"), await alert.innerText());
   ok("email kept after failed login", (await page.inputValue("#email")) === "nobody-wasalni-test@example.com");
 
-  await page.goto(BASE + "/auth/register");
+  await page.goto(BASE + "/auth/register?method=phone");
   await page.fill("#fullName", "Test");
-  await page.fill("#email", "test@example.com");
-  await page.fill("#password", "abcdef123");
-  await page.fill("#confirm", "abcdef999");
-  await page.check('input[name="terms"]');
-  await page.locator('button[type="submit"]').click();
-  await page.getByText("Les mots de passe ne correspondent pas.").first().waitFor({ timeout: 15000 });
-  ok("register validates password confirmation server-side", true);
-  ok("register keeps typed values after error", (await page.inputValue("#fullName")) === "Test");
-  await page.fill("#confirm", "abcdef123");
   await page.fill("#phone", "12345");
-  await page.locator('button[type="submit"]').click();
+  await page.fill("#password", "abcdef123");
+  await page.locator('form button[type="submit"]').click();
   await page.getByText(/numéro de téléphone tunisien valide/).first().waitFor({ timeout: 15000 });
+  ok("register keeps typed values after error", (await page.inputValue("#fullName")) === "Test");
   ok("register rejects invalid Tunisian phone", true);
 
   console.log("Languages & RTL");

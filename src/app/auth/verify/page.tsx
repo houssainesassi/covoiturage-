@@ -35,6 +35,12 @@ export default async function VerifyPage({ searchParams }: PageProps<"/auth/veri
         <span className="flex size-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600"><Icon className="size-7" aria-hidden /></span>
         <p className="mt-4 text-slate-700">{phone ? d.auth.smsSentTo : d.auth.verifySubtitle}</p>
         <p dir="ltr" className="mt-1 max-w-full break-all font-semibold text-slate-900">{phone ? formatTunisianPhone(phone) : email}</p>
+        {purpose === "signup" && (
+          <p className="mt-1 text-sm text-slate-600">
+            {d.auth.wrongIdentifier}{" "}
+            <Link href={`/auth/register?method=${phone ? "phone" : "email"}&next=${encodeURIComponent(next)}`} className="font-semibold text-brand-700 hover:underline">{d.auth.changeIdentifier}</Link>
+          </p>
+        )}
       </div>
       {phone ? <VerifyOtpForm phone={phone} next={next} purpose={purpose} /> : <VerifyOtpForm email={email} next={next} />}
     </AuthShell>
