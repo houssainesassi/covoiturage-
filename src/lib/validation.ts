@@ -14,16 +14,14 @@ export const loginSchema = z.object({
   password: z.string().min(1).max(72),
 });
 
-/**
- * Sign-up form: a name, a password and ONE identifier, the phone number (SMS code)
- * or the email (email code). Accepting the terms is stated next to the button.
- */
-export const registerSchema = (method: "email" | "phone") =>
-  z.object({
+export const registerSchema = z
+  .object({
     fullName: trimmed(100).min(2),
-    email: method === "email" ? z.string().trim().toLowerCase().email() : z.undefined(),
-    phone: method === "phone" ? z.string().trim().min(1).max(20) : z.undefined(),
+    email: z.string().trim().toLowerCase().email(),
+    phone: z.string().trim().min(1).max(20),
     password: passwordSchema,
+    confirm: z.string(),
+    terms: z.literal("on"),
   });
 
 /** Required Tunisian phone number, normalized to E.164 (+216XXXXXXXX). */

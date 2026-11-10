@@ -5,7 +5,6 @@ import { fail, toErrorCode, type ActionResult, type ErrorCode } from "@/lib/erro
 import { tripSchema, vehicleSchema } from "@/lib/validation";
 import { tunisLocalToISO } from "@/lib/i18n/format";
 import { TN_PHONE_REGEX } from "@/lib/phone";
-import { isAccountVerified } from "@/lib/verification";
 import { authed, result } from "./_util";
 
 export async function saveTripAction(tripId: string | null, _: ActionResult | null, fd: FormData): Promise<ActionResult> {
@@ -17,11 +16,6 @@ export async function saveTripAction(tripId: string | null, _: ActionResult | nu
   const { data: priv, error: phoneError } = await supabase.from("profile_private").select("phone").eq("id", userId).maybeSingle();
   if (phoneError) return fail(toErrorCode(phoneError));
   if (!priv?.phone || !TN_PHONE_REGEX.test(priv.phone)) return fail("publish_phone_required");
-  // New rides only (also enforced by the trip trigger, migration 15).
-  if (!tripId) {
-    const { data: u } = await supabase.auth.getUser();
-    if (!isAccountVerified(u.user)) return fail("account_unverified");
-  }
 
   const parsed = tripSchema.safeParse(Object.fromEntries(fd));
   if (!parsed.success) {

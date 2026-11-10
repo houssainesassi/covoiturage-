@@ -26,7 +26,6 @@ export default async function CompleteProfilePage({ searchParams }: PageProps<"/
   const { d } = await getI18n();
   return (
     <AuthShell title={d.completeProfile.title} subtitle={d.completeProfile.subtitle}>
-      {(sp.verified === "1" || sp.phone_verified === "1") && <p role="status" className="mb-5 rounded-xl bg-brand-50 p-3 text-center text-sm font-medium text-brand-800">{sp.phone_verified === "1" ? d.auth.phoneVerified : d.auth.emailVerified}</p>}
       <CompleteProfileForm userId={user.id} next={next} fullName={profile?.full_name ?? ""} avatarPath={profile?.avatar_path ?? null} phone={priv?.phone ?? ""} />
     </AuthShell>
   );

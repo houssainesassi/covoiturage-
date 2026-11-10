@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { ProfileForm } from "@/components/profile/profile-form";
-import { isPhoneVerified } from "@/lib/phone";
 
 export default async function ProfilePage() {
   const user = await requireUser("/dashboard/profile");
@@ -18,7 +17,7 @@ export default async function ProfilePage() {
   return (
     <div className="max-w-3xl">
       <PageHeader title={d.profile.title} action={<ButtonLink href={`/users/${user.id}`} variant="outline">{d.profile.viewPublic}</ButtonLink>} />
-      <ProfileForm profile={profile} phone={priv?.phone ?? ""} phoneVerified={isPhoneVerified(user, priv?.phone)} dob={priv?.date_of_birth ?? ""} locations={locations.map(toLite)} />
+      <ProfileForm profile={profile} phone={priv?.phone ?? ""} dob={priv?.date_of_birth ?? ""} locations={locations.map(toLite)} />
     </div>
   );
 }
