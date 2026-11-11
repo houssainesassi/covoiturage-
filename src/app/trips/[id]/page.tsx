@@ -157,6 +157,7 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
               state={state}
               wasRejected={wasRejected}
               needsProfile={profileCompleteRes.data === false}
+              driverPhone={driverPhone}
               initialSeats={Number(typeof sp.seats === "string" ? sp.seats : 1) || 1}
               booking={myBooking ? { id: myBooking.id, status: myBooking.status, seats: myBooking.seats, total: Number(myBooking.total_price) } : null}
             />

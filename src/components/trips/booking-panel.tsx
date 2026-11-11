@@ -10,6 +10,7 @@ import { cancelBookingAction } from "@/actions/bookings";
 import { useI18n } from "@/lib/i18n/client";
 import { formatPrice } from "@/lib/i18n/format";
 import { BookingStatusNotice } from "@/components/trips/booking-status";
+import { BookingConfirmedModal } from "@/components/trips/booking-confirmed-modal";
 import { Button, buttonClass } from "@/components/ui/button";
 import { Field, FormError, Label, Textarea } from "@/components/ui/form";
 import { ConfirmAction, SubmitButton } from "@/components/ui/client";
@@ -26,9 +27,11 @@ type Props = {
   wasRejected?: boolean;
   /** Signed in, but the photo, name or phone number required to book is missing. */
   needsProfile?: boolean;
+  /** The driver's number, when this viewer may see it (always once their booking is confirmed). */
+  driverPhone?: string | null;
 };
 
-export function BookingPanel({ tripId, price, seatsAvailable, state, booking, initialSeats = 1, wasRejected = false, needsProfile = false }: Props) {
+export function BookingPanel({ tripId, price, seatsAvailable, state, booking, initialSeats = 1, wasRejected = false, needsProfile = false, driverPhone = null }: Props) {
   const { d, locale } = useI18n();
   const router = useRouter();
   const [seats, setSeats] = useState(Math.min(Math.max(initialSeats, 1), Math.max(seatsAvailable, 1)));
@@ -43,7 +46,11 @@ export function BookingPanel({ tripId, price, seatsAvailable, state, booking, in
   if (booking) {
     return (
       <div className="space-y-3">
-        {result?.ok && (
+        {/* Confirmed and the ride is still ahead: once per booking, call the driver or write in the app. */}
+        {booking.status === "confirmed" && (state === "bookable" || state === "full") && (
+          <BookingConfirmedModal bookingId={booking.id} tripId={tripId} driverPhone={driverPhone} />
+        )}
+        {result?.ok && booking.status === "pending" && (
           <div role="status" className="animate-pop-in rounded-2xl bg-brand-600 p-4 text-white">
             <p className="flex items-center gap-2 text-lg font-bold"><PartyPopper className="size-5 shrink-0" aria-hidden />{d.trip.bookingSentTitle}</p>
             <p className="mt-1 text-sm text-white/90">{d.trip.bookingSentBody}</p>

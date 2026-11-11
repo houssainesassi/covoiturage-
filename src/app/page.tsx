@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Banknote, Car, CirclePlus, KeyRound, Search, Users } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
@@ -5,7 +6,7 @@ import { getLocations } from "@/lib/locations";
 import { toLite } from "@/lib/location-lite";
 import { createClient } from "@/lib/supabase/server";
 import { site } from "@/lib/site";
-import { FEATURED_DESTINATIONS, artFor } from "@/lib/destinations";
+import { FEATURED_DESTINATIONS, artFor, photoFor } from "@/lib/destinations";
 import { rentalsEnabled } from "@/lib/features";
 import { plural } from "@/lib/i18n/format";
 import { locName } from "@/lib/names";
@@ -74,10 +75,20 @@ export default async function HomePage() {
         <ul className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
           {featured.map((l, i) => {
             const c = counts[i]?.count ?? 0;
+            const photo = photoFor(l.slug);
             return (
               <li key={l.id} className={i === 0 ? "col-span-2 lg:col-span-1" : undefined}>
                 <Link href={`/destinations/${l.slug}`} className="group block overflow-hidden rounded-3xl bg-white shadow-[var(--shadow-card)] ring-1 ring-slate-200/70 transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-lift)]">
-                  <div className={i === 0 ? "h-32 sm:h-36" : "h-28 sm:h-36"}><DestinationArt kind={artFor(l.slug)} /></div>
+                  <div className={`relative overflow-hidden bg-slate-100 ${i === 0 ? "h-32 sm:h-36" : "h-28 sm:h-36"}`}>
+                    {photo ? (
+                      <>
+                        <Image src={photo} alt="" fill sizes="(min-width: 1024px) 20vw, (min-width: 640px) 50vw, 100vw" className="object-cover transition duration-500 ease-out group-hover:scale-105" />
+                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" aria-hidden />
+                      </>
+                    ) : (
+                      <DestinationArt kind={artFor(l.slug)} />
+                    )}
+                  </div>
                   <div className="flex items-center justify-between gap-2 p-3">
                     <div className="min-w-0">
                       <p className="truncate text-base font-bold sm:text-lg">{locName(l, locale)}</p>

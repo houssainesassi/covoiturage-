@@ -6,7 +6,7 @@ import { startConversationAction } from "@/actions/messages";
 import { useI18n } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 
-export function ContactButton({ tripId, passengerId, label, variant = "outline", size = "md", className }: { tripId: string; passengerId?: string; label: string; variant?: "outline" | "secondary" | "ghost"; size?: "sm" | "md"; className?: string }) {
+export function ContactButton({ tripId, passengerId, label, variant = "outline", size = "md", className, icon = true }: { tripId: string; passengerId?: string; label: string; variant?: "outline" | "secondary" | "ghost"; size?: "sm" | "md" | "lg"; className?: string; icon?: boolean }) {
   const { d } = useI18n();
   const [pending, start] = useTransition();
   return (
@@ -23,7 +23,7 @@ export function ContactButton({ tripId, passengerId, label, variant = "outline",
         })
       }
     >
-      <MessageCircle className="size-4" aria-hidden />
+      {icon && <MessageCircle className="size-4" aria-hidden />}
       {label}
     </Button>
   );

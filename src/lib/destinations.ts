@@ -9,6 +9,11 @@ export function artFor(slug: string): ArtKind {
   return (FEATURED_DESTINATIONS as readonly string[]).includes(slug) ? (slug as ArtKind) : "generic";
 }
 
+/** Real photo for each featured destination (960×600 WebP in /public/destinations, same crop and colour grade). */
+export function photoFor(slug: string): string | null {
+  return (FEATURED_DESTINATIONS as readonly string[]).includes(slug) ? `/destinations/${slug}.webp` : null;
+}
+
 export type Direction = "go" | "back";
 
 /**
