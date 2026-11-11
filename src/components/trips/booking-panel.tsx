@@ -50,7 +50,7 @@ export function BookingPanel({ tripId, price, seatsAvailable, state, booking, in
       <div className="space-y-3">
         {/* Booked and the ride is still ahead: once per booking, call the driver or write in the app. */}
         {(booking.status === "pending" || booking.status === "confirmed") && (state === "bookable" || state === "full") && (
-          <BookingConfirmedModal bookingId={booking.id} tripId={tripId} driverPhone={driverPhone} />
+          <BookingConfirmedModal bookingId={booking.id} tripId={tripId} driverPhone={driverPhone} pending={booking.status === "pending"} />
         )}
         {result?.ok && booking.status === "pending" && (
           <div role="status" className="animate-pop-in rounded-2xl bg-brand-600 p-4 text-white">

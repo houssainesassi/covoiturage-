@@ -383,6 +383,8 @@ const ar: Dictionary = {
     addMessage: "زيد ميساج للشيفور",
     bookingSentTitle: "الطلب متاعك تبعث!",
     bookingSentBody: "باش يوصلك إشعار كي يجاوبك الشيفور. تنجم تكلّمو من توّا: النومرو متاعو في الصفحة هاذي.",
+    bookingPendingTitle: "الحجز تبعث! 🎉",
+    bookingPendingNote: "الشيفور مازال ما أكّدش الحجز. تنجم تكلّمو من توّا.",
     bookingConfirmedTitle: "تمّ الحجز بنجاح! 🎉",
     bookingConfirmedQuestion: "تحب تتواصل مع صاحب العرض بالتليفون ولا تكمّل من داخل التطبيق؟",
     bookingConfirmedCall: "📞 اتصل بيه",

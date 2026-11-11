@@ -386,6 +386,8 @@ const en = {
     addMessage: "Add a message for the driver",
     bookingSentTitle: "Your request has been sent!",
     bookingSentBody: "You'll get a notification when the driver replies. You can already call them: their number is on this page.",
+    bookingPendingTitle: "Booking sent! 🎉",
+    bookingPendingNote: "The driver hasn't confirmed yet. You can already call them.",
     bookingConfirmedTitle: "Booking confirmed! 🎉",
     bookingConfirmedQuestion: "Would you like to contact the driver by phone or continue in the app?",
     bookingConfirmedCall: "📞 Call",

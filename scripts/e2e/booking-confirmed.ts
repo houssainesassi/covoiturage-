@@ -193,6 +193,7 @@ async function main() {
     ok("popup appears after the booking is confirmed", await modal(page).isVisible());
     const dialogText = (await page.locator("dialog[open]").innerText()).replace(/\s+/g, " ");
     ok("title: تمّ الحجز بنجاح! 🎉", dialogText.includes("تمّ الحجز بنجاح! 🎉"), dialogText);
+    ok("confirmed: no 'driver has not confirmed' note", (await page.getByTestId("booking-pending-note").count()) === 0);
     ok("question asked in Derja", dialogText.includes("تحب تتواصل مع صاحب العرض بالتليفون ولا تكمّل من داخل التطبيق؟"), dialogText);
     const call = page.getByTestId("booking-confirmed-call");
     ok("call button: 📞 اتصل بيه", (await call.innerText()).includes("📞 اتصل بيه"));
@@ -243,6 +244,10 @@ async function main() {
     ok("pending: popup right after booking", await modal(page).isVisible());
     ok("pending: popup offers the driver's number", (await page.getByTestId("booking-confirmed-call").getAttribute("href").catch(() => null)) === `tel:${PHONE}`);
     ok("pending: driver number in the card right after booking", await cardPhone(page).isVisible());
+    const pendingText = (await page.locator("dialog[open]").innerText().catch(() => "")).replace(/\s+/g, " ");
+    ok("pending: title says sent, not confirmed", pendingText.includes("الحجز تبعث! 🎉") && !pendingText.includes("تمّ الحجز بنجاح"), pendingText);
+    ok("pending: popup says the driver has not confirmed yet", pendingText.includes("الشيفور مازال ما أكّدش الحجز"), pendingText);
+    ok("pending: booking stays pending after the number is shown", state.booking?.status === "pending", state.booking);
     await page.keyboard.press("Escape");
     state.booking!.status = "confirmed"; // the driver accepts later
     await page.reload();

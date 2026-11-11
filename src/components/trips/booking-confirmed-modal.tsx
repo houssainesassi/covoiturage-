@@ -32,7 +32,7 @@ function markSeen(bookingId: string) {
  * driver still has to accept). Offers a call (a passenger gets the driver's number as soon as they
  * book, migration 18) or the in-app conversation.
  */
-export function BookingConfirmedModal({ bookingId, tripId, driverPhone }: { bookingId: string; tripId: string; driverPhone: string | null }) {
+export function BookingConfirmedModal({ bookingId, tripId, driverPhone, pending }: { bookingId: string; tripId: string; driverPhone: string | null; pending: boolean }) {
   const { d } = useI18n();
   const [dismissed, setDismissed] = useState(false);
   // Read on the device only; the server render never shows it.
@@ -50,8 +50,10 @@ export function BookingConfirmedModal({ bookingId, tripId, driverPhone }: { book
   };
 
   return (
-    <Modal open={open} onClose={() => setOpen(false)} title={d.trip.bookingConfirmedTitle}>
+    <Modal open={open} onClose={() => setOpen(false)} title={pending ? d.trip.bookingPendingTitle : d.trip.bookingConfirmedTitle}>
       <div data-testid="booking-confirmed-modal">
+        {/* The number is shown at once, but the booking stays pending until the driver accepts. */}
+        {pending && <p data-testid="booking-pending-note" className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">{d.trip.bookingPendingNote}</p>}
         <p className="text-base text-slate-700">{d.trip.bookingConfirmedQuestion}</p>
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {driverPhone ? (

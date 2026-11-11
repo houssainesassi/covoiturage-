@@ -384,6 +384,8 @@ const fr: Dictionary = {
     addMessage: "Ajouter un message pour le conducteur",
     bookingSentTitle: "Votre demande a bien été envoyée !",
     bookingSentBody: "Vous recevrez une notification dès la réponse du conducteur. Vous pouvez déjà l'appeler : son numéro est sur cette page.",
+    bookingPendingTitle: "Réservation envoyée ! 🎉",
+    bookingPendingNote: "Le conducteur n'a pas encore confirmé. Vous pouvez déjà l'appeler.",
     bookingConfirmedTitle: "Réservation confirmée ! 🎉",
     bookingConfirmedQuestion: "Voulez-vous contacter le conducteur par téléphone ou continuer dans l'application ?",
     bookingConfirmedCall: "📞 Appeler",
