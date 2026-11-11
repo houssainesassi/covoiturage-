@@ -12,7 +12,7 @@ Supabase (Postgres, Auth, Storage, Realtime) · Tailwind CSS 4 · Leaflet + Open
 - Trip page: OSM map with driving route, driver profile & preferences, vehicle, co-passengers, booking.
 - Booking: request → driver accepts/rejects → confirmed/cancelled/completed. Seats are reserved
   atomically in Postgres (`request_booking`, row lock) — no overbooking, no self-booking, no duplicates.
-  Driver phone & plate revealed only after confirmation. Cash payment to the driver.
+  Driver phone & plate shown to the passenger as soon as they book (migration 18). Cash payment to the driver.
 - Driver dashboard: publish/edit/cancel rides (map pickup points, OSRM distance, price suggestion),
   requests, passengers, completion, vehicles with photos, earnings.
 - Passenger dashboard: bookings, cancellation until departure, reviews.
@@ -76,6 +76,7 @@ Import the repository, add the environment variables from `.env.example`, deploy
 | `npm run test:db` | 152 DB integration tests on a real embedded Postgres: booking rules, 20 concurrent bookings for 3 seats, cancellations, RLS/privileges, messaging, reviews, admin, jobs |
 | `npm run build` | Production build |
 | `BASE_URL=http://127.0.0.1:3000 CHROME_PATH=<chromium> npx tsx scripts/e2e/smoke.ts` | Browser checks: search, filters, auth guards, form errors, RTL, mobile layout |
+| `CHROME_PATH=<chromium> npx tsx scripts/e2e/booking-confirmed.ts` | Booking popup against a fake Supabase (no project touched): texts, call and in-app buttons, driver number right after booking, once per booking, phone layout. Set `APP_DIR` to a copy of the project if your own `next dev` is running |
 
 ## Security notes
 - RLS on every table, column-level grants (users cannot write `role`, `status`, ratings, seat counts,

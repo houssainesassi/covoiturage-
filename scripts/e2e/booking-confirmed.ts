@@ -8,10 +8,10 @@
  * Next allows one `next dev` per folder. If yours is running, set APP_DIR to a copy of the project
  * (src, public, configs, and a symlink to node_modules); .env.local is not needed there.
  *
- * Covers: instant confirmation (auto-accept) shows the popup with the exact texts; the call button
- * dials the driver's number; the in-app button opens the conversation; the popup appears once per
- * booking; a pending request shows no popup and no number until the driver accepts; a driver
- * without a number; the driver card shows the number once confirmed; the phone layout.
+ * Covers: booking shows the popup with the exact texts, for an instant confirmation and for a
+ * request the driver still has to accept; the driver's number in the card right after booking; the
+ * call button dials it; the in-app button opens the conversation; the popup appears once per
+ * booking; a driver without a number; the phone layout.
  * Booking rules themselves (auto-accept, seats, permissions) are covered by `npm run test:db`.
  */
 import { createServer, type IncomingMessage } from "node:http";
@@ -97,8 +97,8 @@ const fake = createServer(async (req, res) => {
         state.booking = { id: BOOKING, status: state.autoAccept ? "confirmed" : "pending", seats: args.p_seats, total_price: 7 * args.p_seats };
         return send(200, BOOKING);
       case "get_trip_contacts":
-        // Confirmed passengers get the driver's contact (migration 9); nobody else does.
-        return send(200, state.booking?.status === "confirmed" ? [{ user_id: DRIVER, full_name: "Sami Ben Ali", phone: state.driverPhone, role: "driver", plate_number: "123 TU 4567" }] : []);
+        // A passenger with a pending or confirmed booking gets the driver's contact (migration 18).
+        return send(200, state.booking ? [{ user_id: DRIVER, full_name: "Sami Ben Ali", phone: state.driverPhone, role: "driver", plate_number: "123 TU 4567" }] : []);
       case "start_conversation":
         return send(200, CONVERSATION);
       case "my_profile_complete":
@@ -199,6 +199,9 @@ async function main() {
     ok("call button dials the driver's number", (await call.getAttribute("href")) === `tel:${PHONE}`, await call.getAttribute("href"));
     ok("in-app button: 💬 داخل التطبيق", await page.locator("dialog[open]").getByRole("button", { name: "💬 داخل التطبيق" }).isVisible());
     ok("driver card shows the number once confirmed", await cardPhone(page).isVisible());
+    ok("no contradicting 'request sent, driver will reply' toast", !(await page.locator("[data-sonner-toaster]").innerText().catch(() => "")).includes("الشيفور باش يجاوبك"));
+    const callBox = await call.boundingBox();
+    ok("call button fits its label and number", !!callBox && callBox.height >= 60, callBox);
     await shot(page, "desktop-popup");
     // A tel: link opens the phone app; here only check that tapping it leaves the page usable.
     await page.evaluate(() => document.querySelector<HTMLAnchorElement>('[data-testid="booking-confirmed-call"]')?.addEventListener("click", (e) => e.preventDefault(), { once: true }));
@@ -225,7 +228,7 @@ async function main() {
     ok("no page errors", errors.length === 0, errors);
     await ctx.close();
 
-    console.log("Request that needs the driver's approval");
+    console.log("Request that still needs the driver's approval");
     reset({ autoAccept: false });
     ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     await signedIn(ctx);
@@ -235,13 +238,17 @@ async function main() {
     await page.waitForFunction(() => document.querySelector("#book")?.textContent?.includes("الطلب متاعك تبعث"), null, { timeout: 20_000 }).catch(() => {});
     await page.waitForTimeout(1000);
     ok("pending: the 'request sent' message shows", (await page.locator("#book").innerText()).includes("الطلب متاعك تبعث"));
-    ok("pending: no popup", !(await modal(page).isVisible()));
-    ok("pending: driver number stays hidden", (await cardPhone(page).count()) === 0);
-    state.booking!.status = "confirmed"; // the driver accepts
-    await page.reload();
+    ok("pending: 'request sent' toast still shown", (await page.locator("[data-sonner-toaster]").innerText().catch(() => "")).includes("الشيفور باش يجاوبك"));
     await modal(page).waitFor({ state: "visible", timeout: 10_000 }).catch(() => {});
-    ok("after the driver accepts: popup on the next visit", await modal(page).isVisible());
-    ok("after the driver accepts: number in the card", await cardPhone(page).isVisible());
+    ok("pending: popup right after booking", await modal(page).isVisible());
+    ok("pending: popup offers the driver's number", (await page.getByTestId("booking-confirmed-call").getAttribute("href").catch(() => null)) === `tel:${PHONE}`);
+    ok("pending: driver number in the card right after booking", await cardPhone(page).isVisible());
+    await page.keyboard.press("Escape");
+    state.booking!.status = "confirmed"; // the driver accepts later
+    await page.reload();
+    await page.waitForTimeout(1500);
+    ok("after the driver accepts: no second popup", !(await modal(page).isVisible()));
+    ok("after the driver accepts: number still in the card", await cardPhone(page).isVisible());
     await ctx.close();
 
     console.log("Driver without a number");

@@ -2,6 +2,7 @@
 
 These files are outside `supabase/migrations`, so `supabase db push` never runs them. Run them by hand, one at a time, in this order:
 
+1. `20261111000018_driver_phone_after_booking.down.sql` (back to: the driver's number only after the driver confirms)
 1. `20261108000013_private_suspension_reason.down.sql` (makes suspension reasons public again, so run it only if migration 13 itself causes an outage)
 2. `20261108000012_optional_vehicle_details.down.sql`
 3. `20261108000010_email_verification.down.sql` (turn **Confirm email** off first)

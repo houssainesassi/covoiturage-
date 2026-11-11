@@ -27,7 +27,7 @@ type Props = {
   wasRejected?: boolean;
   /** Signed in, but the photo, name or phone number required to book is missing. */
   needsProfile?: boolean;
-  /** The driver's number, when this viewer may see it (always once their booking is confirmed). */
+  /** The driver's number, when this viewer may see it (always once they have booked: migration 18). */
   driverPhone?: string | null;
 };
 
@@ -37,17 +37,19 @@ export function BookingPanel({ tripId, price, seatsAvailable, state, booking, in
   const [seats, setSeats] = useState(Math.min(Math.max(initialSeats, 1), Math.max(seatsAvailable, 1)));
   const [result, action, pending] = useFormAction(requestBookingAction);
   useEffect(() => {
-    if (result?.ok) {
-      toast.success(d.trip.bookingRequested);
-      router.refresh();
-    }
-  }, [result, d, router]);
+    if (result?.ok) router.refresh();
+  }, [result, router]);
+  // "Request sent" only for a request waiting for the driver; an instant confirmation gets the popup.
+  const bookedStatus = booking?.status;
+  useEffect(() => {
+    if (result?.ok && bookedStatus === "pending") toast.success(d.trip.bookingRequested);
+  }, [result, bookedStatus, d]);
 
   if (booking) {
     return (
       <div className="space-y-3">
-        {/* Confirmed and the ride is still ahead: once per booking, call the driver or write in the app. */}
-        {booking.status === "confirmed" && (state === "bookable" || state === "full") && (
+        {/* Booked and the ride is still ahead: once per booking, call the driver or write in the app. */}
+        {(booking.status === "pending" || booking.status === "confirmed") && (state === "bookable" || state === "full") && (
           <BookingConfirmedModal bookingId={booking.id} tripId={tripId} driverPhone={driverPhone} />
         )}
         {result?.ok && booking.status === "pending" && (

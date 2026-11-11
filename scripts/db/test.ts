@@ -625,12 +625,19 @@ async function run(pool: Pool) {
   const contactsFor = async (u: string, t: string) => (await as(pool, u, (c) => c.query("select phone, role from public.get_trip_contacts($1)", [t]))).rows;
   ok("a signed-in stranger gets no driver phone", (await contactsFor(p2, openTrip)).length === 0);
   const phoneBooking = await book(pool, fresh, openTrip, 1);
-  ok("a pending passenger gets no driver phone", (await contactsFor(fresh, openTrip)).length === 0);
+  const pendingContacts = await contactsFor(fresh, openTrip);
+  ok("a passenger gets the driver phone as soon as they book (migration 18)", pendingContacts.length === 1 && pendingContacts[0].role === "driver" && pendingContacts[0].phone === "+21622123456", pendingContacts);
   await as(pool, driver, (c) => c.query("select public.respond_booking($1, true)", [phoneBooking]));
   const accepted = await contactsFor(fresh, openTrip);
   ok("an accepted passenger gets the driver phone", accepted.length === 1 && accepted[0].role === "driver" && accepted[0].phone === "+21622123456", accepted);
   await as(pool, fresh, (c) => c.query("select public.cancel_booking($1, null)", [phoneBooking]));
   ok("cancelling the booking removes phone access", (await contactsFor(fresh, openTrip)).length === 0);
+  const declined = await book(pool, p2, openTrip, 1);
+  ok("a pending request sees the phone", (await contactsFor(p2, openTrip)).length === 1);
+  await as(pool, driver, (c) => c.query("select public.respond_booking($1, false)", [declined]));
+  ok("a declined request loses phone access", (await contactsFor(p2, openTrip)).length === 0);
+  const driverView = await as(pool, driver, (c) => c.query("select phone from public.get_trip_contacts($1)", [openTrip]));
+  ok("the driver still sees no phone of pending or declined passengers", driverView.rowCount === 0, driverView.rows);
   const directRead = await as(pool, p2, (c) => c.query("select phone from public.profile_private where id = $1", [driver]));
   ok("a driver's phone cannot be read directly", directRead.rowCount === 0, directRead.rows);
 
@@ -984,6 +991,17 @@ async function run(pool: Pool) {
   ok("after rollback get_trip_contacts still runs", (await fails(contactsFor(p1, trip))) === "__no_error__");
   await pool.query(readFileSync(path.join(root, "supabase/migrations/20261111000017_public_driver_phones.sql"), "utf8"));
   ok("migration 17 re-applies cleanly after rollback (everyone back to off)", (await pool.query("select count(*)::int n from public.profile_private where phone_public")).rows[0].n === 0);
+
+  console.log("\nRollback of migration 18");
+  const pendingAgain = await book(pool, fresh, openTrip, 1);
+  ok("with migration 18, a pending passenger sees the driver phone", (await contactsFor(fresh, openTrip)).length === 1);
+  await pool.query(readFileSync(path.join(root, "supabase/rollback/20261111000018_driver_phone_after_booking.down.sql"), "utf8"));
+  ok("after rollback, a pending passenger no longer sees it", (await contactsFor(fresh, openTrip)).length === 0);
+  await as(pool, driver, (c) => c.query("select public.respond_booking($1, true)", [pendingAgain]));
+  ok("after rollback, a confirmed passenger still sees it", (await contactsFor(fresh, openTrip)).length === 1);
+  ok("after rollback guests still cannot call it", /permission denied/.test(await fails(as(pool, "anon", (c) => c.query("select * from public.get_trip_contacts($1)", [openTrip])))));
+  await pool.query(readFileSync(path.join(root, "supabase/migrations/20261111000018_driver_phone_after_booking.sql"), "utf8"));
+  ok("migration 18 re-applies cleanly", (await contactsFor(fresh, openTrip)).length === 1);
 }
 
 

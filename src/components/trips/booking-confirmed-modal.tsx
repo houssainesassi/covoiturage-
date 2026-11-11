@@ -28,9 +28,9 @@ function markSeen(bookingId: string) {
 }
 
 /**
- * Shown the first time the passenger sees their booking confirmed: right after booking a ride that
- * accepts automatically, or on their next visit once the driver has accepted the request.
- * Offers a call (the number is only available to confirmed passengers) or the in-app conversation.
+ * Shown once per booking, right after the passenger books (whether the ride confirms at once or the
+ * driver still has to accept). Offers a call (a passenger gets the driver's number as soon as they
+ * book, migration 18) or the in-app conversation.
  */
 export function BookingConfirmedModal({ bookingId, tripId, driverPhone }: { bookingId: string; tripId: string; driverPhone: string | null }) {
   const { d } = useI18n();
@@ -55,7 +55,7 @@ export function BookingConfirmedModal({ bookingId, tripId, driverPhone }: { book
         <p className="text-base text-slate-700">{d.trip.bookingConfirmedQuestion}</p>
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {driverPhone ? (
-            <a href={`tel:${driverPhone}`} onClick={() => setOpen(false)} data-testid="booking-confirmed-call" className={buttonClass("primary", "lg", "w-full flex-col gap-0.5")}>
+            <a href={`tel:${driverPhone}`} onClick={() => setOpen(false)} data-testid="booking-confirmed-call" className={buttonClass("primary", "lg", "h-auto min-h-13 w-full flex-col gap-0.5 py-2.5")}>
               <span>{d.trip.bookingConfirmedCall}</span>
               <span className="text-sm font-semibold tabular-nums opacity-90" dir="ltr">{formatTunisianPhone(driverPhone)}</span>
             </a>
@@ -66,8 +66,8 @@ export function BookingConfirmedModal({ bookingId, tripId, driverPhone }: { book
             </div>
           )}
           {/* Opens the conversation (the page navigates away): don't show this again on return. */}
-          <div onClickCapture={() => shownNow.delete(bookingId)}>
-            <ContactButton tripId={tripId} label={d.trip.bookingConfirmedInApp} variant="outline" size="lg" icon={false} className="w-full" />
+          <div className="grid" onClickCapture={() => shownNow.delete(bookingId)}>
+            <ContactButton tripId={tripId} label={d.trip.bookingConfirmedInApp} variant="outline" size="lg" icon={false} className="h-full min-h-13 w-full" />
           </div>
         </div>
       </div>
