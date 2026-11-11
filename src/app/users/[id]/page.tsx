@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Car, MapPin, Star, Users } from "lucide-react";
+import { Car, MapPin, Phone, Star, Users } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getUser } from "@/lib/auth";
 import { getLocationMap } from "@/lib/locations";
 import { createClient } from "@/lib/supabase/server";
 import { fmt, formatDate, plural } from "@/lib/i18n/format";
 import { locName } from "@/lib/names";
-import { TRIP_CARD_SELECT, toCard } from "@/lib/queries";
+import { TRIP_CARD_SELECT, toCard, withDriverPhones } from "@/lib/queries";
+import { formatTunisianPhone } from "@/lib/phone";
+import { buttonClass } from "@/components/ui/button";
 import { uuidSchema } from "@/lib/validation";
 import { Avatar } from "@/components/ui/avatar";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -42,7 +44,10 @@ export default async function UserPage({ params }: PageProps<"/users/[id]">) {
     supabase.from("trips").select(TRIP_CARD_SELECT).eq("driver_id", id).eq("status", "scheduled").gt("departure_at", new Date().toISOString()).order("departure_at").limit(6),
   ]);
   const { data: past } = await supabase.from("trips").select(TRIP_CARD_SELECT).eq("driver_id", id).eq("status", "completed").order("departure_at", { ascending: false }).limit(4);
-  const upcomingCards = (trips ?? []).map(toCard);
+  const upcomingCards = await withDriverPhones(supabase, (trips ?? []).map(toCard));
+  // Public for drivers only (migration 17); null for passengers or before the migration is applied.
+  const { data: phoneRows } = await supabase.rpc("get_public_driver_phones", { p_driver_ids: [id] });
+  const phone = phoneRows?.[0]?.phone ?? null;
   const pastCards = (past ?? []).map(toCard);
   const city = profile.city_id ? locs.get(profile.city_id) : null;
 
@@ -61,6 +66,11 @@ export default async function UserPage({ params }: PageProps<"/users/[id]">) {
             {profile.status === "suspended" && <Badge tone="danger" className="mt-2">{d.profile.suspended}</Badge>}
             {profile.is_demo && <p className="mt-2 flex flex-wrap items-center justify-center gap-2 text-sm text-amber-800 sm:justify-start"><DemoBadge label={d.common.demo} />{d.profile.demoNotice}</p>}
             {profile.bio && <p className="mt-3 max-w-2xl text-slate-700">{profile.bio}</p>}
+            {phone && (
+              <a href={`tel:${phone}`} className={buttonClass("secondary", "md", "mt-4 text-base")}>
+                <Phone className="size-4" aria-hidden />{d.trip.callDriver} · <bdi dir="ltr">{formatTunisianPhone(phone)}</bdi>
+              </a>
+            )}
           </div>
           {viewer && viewer.id !== profile.id && <ReportDialog userId={profile.id} name={profile.full_name} />}
         </div>

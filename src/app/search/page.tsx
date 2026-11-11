@@ -11,7 +11,7 @@ import { routeLabel } from "@/lib/notifications";
 import { SearchForm } from "@/components/search/search-form";
 import { SearchFilters } from "@/components/search/filters";
 import { TripCard } from "@/components/trips/trip-card";
-import { TRIP_CARD_SELECT, toCard } from "@/lib/queries";
+import { TRIP_CARD_SELECT, searchRowToCard, toCard, withDriverPhones } from "@/lib/queries";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState, Pagination } from "@/components/ui/misc";
 
@@ -58,8 +58,8 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
     p_limit: PAGE_SIZE,
     p_offset: (page - 1) * PAGE_SIZE,
   });
-  const rows = data ?? [];
-  const total = Number(rows[0]?.total_count ?? 0);
+  const rows = await withDriverPhones(supabase, (data ?? []).map(searchRowToCard));
+  const total = Number(data?.[0]?.total_count ?? 0);
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   // Nothing bookable matches: show completed public trips on the same route so visitors see real activity.
@@ -104,13 +104,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
             <>
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 {rows.map((r) => (
-                  <TripCard
-                    key={r.id}
-                    locations={byId}
-                    d={d}
-                    locale={locale}
-                    trip={{ ...r, price_per_seat: Number(r.price_per_seat), driver_rating: Number(r.driver_rating), vehicle: [r.vehicle_brand, r.vehicle_model].filter(Boolean).join(" ") || null }}
-                  />
+                  <TripCard key={r.id} locations={byId} d={d} locale={locale} trip={r} />
                 ))}
               </div>
               <Pagination page={page} totalPages={totalPages} hrefFor={(p) => qs({ page: String(p) })} labels={{ previous: d.common.previous, next: d.common.next, pageOf: fmt(d.common.pageOf, { page, total: totalPages }) }} />

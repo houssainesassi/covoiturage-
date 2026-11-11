@@ -55,7 +55,7 @@ export function DriverContact({ d, locale, tripId, driver, phone, plate, viewer,
       ) : active && viewer !== "owner" ? (
         <p className="mt-4 flex items-center gap-3 rounded-2xl bg-slate-50 p-3 text-sm text-slate-600">
           <Lock className="size-5 shrink-0 text-slate-500" aria-hidden />
-          {d.trip.phoneAfterConfirm}
+          {viewer === "guest" ? d.trip.phoneSignIn : d.trip.phoneAfterConfirm}
         </p>
       ) : null}
 

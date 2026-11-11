@@ -44,3 +44,23 @@ export function toCard(r: Row): TripCardData {
   };
 }
 
+
+/** Row returned by the search_trips RPC → trip card. */
+export function searchRowToCard(r: import("@/lib/supabase/database.types").SearchResult): TripCardData {
+  return { ...r, price_per_seat: Number(r.price_per_seat), driver_rating: Number(r.driver_rating), vehicle: [r.vehicle_brand, r.vehicle_model].filter(Boolean).join(" ") || null };
+}
+
+/**
+ * Numbers of drivers who opted in, for signed-in viewers only (migration 17).
+ * Fails safe: if the function is missing or errors, cards simply show no number.
+ */
+export async function withDriverPhones<T extends { driver_id?: string }>(supabase: import("@/lib/supabase/server").ServerSupabase, cards: T[]): Promise<(T & { driver_phone: string | null })[]> {
+  const ids = [...new Set(cards.map((c) => c.driver_id).filter((x): x is string => !!x))];
+  const phones = new Map<string, string>();
+  // Guests: skip the call (the database refuses it anyway; this only saves a round trip).
+  if (ids.length && (await supabase.auth.getSession()).data.session) {
+    const { data } = await supabase.rpc("get_public_driver_phones", { p_driver_ids: ids });
+    for (const r of data ?? []) phones.set(r.driver_id, r.phone);
+  }
+  return cards.map((c) => ({ ...c, driver_phone: (c.driver_id && phones.get(c.driver_id)) || null }));
+}

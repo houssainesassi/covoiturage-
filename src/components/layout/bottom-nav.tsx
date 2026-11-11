@@ -6,13 +6,13 @@ import { useI18n } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 
 /** Pages with their own bottom action bar or full-screen form. */
-const HIDDEN_ON = ["/auth", "/trips/", "/dashboard/messages/", "/admin"];
+const HIDDEN_ON = ["/auth", "/trips/", "/rentals/", "/dashboard/messages/", "/admin"];
 
 /** Phone navigation: the app's main actions, always one thumb away. */
 export function BottomNav({ signedIn }: { signedIn: boolean }) {
   const { d } = useI18n();
   const path = usePathname();
-  if (HIDDEN_ON.some((p) => path.startsWith(p))) return null;
+  if (HIDDEN_ON.some((p) => path.startsWith(p)) || path === "/dashboard/trips/new" || /^\/dashboard\/trips\/[^/]+\/edit$/.test(path)) return null;
   const items = [
     { href: "/search", label: d.common.search, icon: Search, active: path === "/search" },
     { href: "/dashboard/trips/new", label: d.common.publish, icon: PlusCircle, active: path === "/dashboard/trips/new" },

@@ -1,11 +1,11 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, CalendarCheck, Car, CarFront, LayoutDashboard, MessageCircle, Settings, Star, User, Wallet, Shield } from "lucide-react";
+import { Bell, CalendarCheck, Car, CarFront, KeyRound, LayoutDashboard, MessageCircle, Settings, Star, User, Wallet, Shield } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 
-export function DashboardSidebar({ isAdmin }: { isAdmin: boolean }) {
+export function DashboardSidebar({ isAdmin, rentals = false }: { isAdmin: boolean; rentals?: boolean }) {
   const { d } = useI18n();
   const path = usePathname();
   const groups = [
@@ -17,6 +17,7 @@ export function DashboardSidebar({ isAdmin }: { isAdmin: boolean }) {
         { href: "/dashboard/trips", label: d.nav.myTrips, icon: Car },
         { href: "/dashboard/vehicles", label: d.nav.vehicles, icon: CarFront },
         { href: "/dashboard/earnings", label: d.nav.earnings, icon: Wallet },
+        ...(rentals ? [{ href: "/dashboard/rentals", label: d.rentals.mine, icon: KeyRound }] : []),
       ],
     },
     {

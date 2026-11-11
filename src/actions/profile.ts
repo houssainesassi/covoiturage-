@@ -56,6 +56,16 @@ export async function savePhoneAction(_: ActionResult | null, fd: FormData): Pro
   return { ok: true };
 }
 
+/** A driver's explicit consent (or withdrawal) to show their number to signed-in members. */
+export async function setPhoneVisibilityAction(visible: boolean): Promise<ActionResult> {
+  const ctx = await authed();
+  if ("error" in ctx) return ctx.error;
+  const { error } = await ctx.supabase.rpc("set_my_phone_public", { p_public: visible === true });
+  if (error) return fail(toErrorCode(error));
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 export async function updateAvatarAction(path: string | null): Promise<ActionResult> {
   const ctx = await authed();
   if ("error" in ctx) return ctx.error;

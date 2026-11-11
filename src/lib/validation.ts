@@ -53,8 +53,9 @@ const coord = (min: number, max: number) => z.coerce.number().min(min).max(max);
 export const tripSchema = z.object({
   originId: uuid,
   destinationId: uuid,
-  originAddress: trimmed(200).min(2),
-  destinationAddress: trimmed(200).min(2),
+  // Optional: an empty meeting point falls back to the town name (see saveTripAction).
+  originAddress: z.union([z.literal(""), trimmed(200).min(2)]).optional(),
+  destinationAddress: z.union([z.literal(""), trimmed(200).min(2)]).optional(),
   originLat: coord(30, 38),
   originLng: coord(7, 12.5),
   destinationLat: coord(30, 38),
@@ -119,3 +120,17 @@ export const reportSchema = z.object({
 });
 
 export { uuid as uuidSchema };
+
+export const rentalSchema = z.object({
+  agencyName: trimmed(100).min(2),
+  licence: trimmed(50).min(3),
+  type: z.enum(["sedan", "hatchback", "suv", "van", "minibus", "pickup", "other"]),
+  brand: trimmed(50).min(1),
+  model: optionalText(50),
+  year: z.coerce.number().int().min(1970).max(new Date().getFullYear() + 1).optional().catch(undefined),
+  seats: z.coerce.number().int().min(1).max(9),
+  locationId: uuid,
+  phone: phoneField,
+  conditions: optionalText(1500),
+  availability: optionalText(300),
+});

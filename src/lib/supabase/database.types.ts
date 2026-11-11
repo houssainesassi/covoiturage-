@@ -111,10 +111,51 @@ export type Database = {
         Relationships: [Rel<"profiles_city_id_fkey", "city_id", "locations">];
       };
       profile_private: {
-        Row: { id: string; phone: string | null; date_of_birth: string | null; suspended_reason: string | null; created_at: string; updated_at: string };
+        Row: { id: string; phone: string | null; date_of_birth: string | null; suspended_reason: string | null; phone_public: boolean; phone_public_at: string | null; created_at: string; updated_at: string };
         Insert: { id: string; phone?: string | null; date_of_birth?: string | null };
         Update: { phone?: string | null; date_of_birth?: string | null };
         Relationships: [Rel<"profile_private_id_fkey", "id", "profiles", true>];
+      };
+      rental_listings: {
+        Row: {
+          id: string;
+          owner_id: string;
+          agency_name: string;
+          licence_number: string;
+          vehicle_type: Database["public"]["Enums"]["vehicle_type"];
+          brand: string;
+          model: string | null;
+          year: number | null;
+          seats: number;
+          location_id: string;
+          phone: string;
+          conditions: string | null;
+          availability: string | null;
+          photo_paths: string[];
+          status: Database["public"]["Enums"]["rental_status"];
+          review_note: string | null;
+          fee_amount_millimes: number | null;
+          fee_status: "none" | "waived" | "due" | "paid";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          owner_id: string;
+          agency_name: string;
+          licence_number: string;
+          vehicle_type?: Database["public"]["Enums"]["vehicle_type"];
+          brand: string;
+          model?: string | null;
+          year?: number | null;
+          seats?: number;
+          location_id: string;
+          phone: string;
+          conditions?: string | null;
+          availability?: string | null;
+          photo_paths: string[];
+        };
+        Update: { [_ in never]: never };
+        Relationships: [Rel<"rental_listings_owner_id_fkey", "owner_id", "profiles">, Rel<"rental_listings_location_id_fkey", "location_id", "locations">];
       };
       vehicles: {
         Row: {
@@ -497,6 +538,9 @@ export type Database = {
         Args: { p_report_id: string; p_status: Database["public"]["Enums"]["report_status"]; p_note?: string | null };
         Returns: undefined;
       };
+      get_public_driver_phones: { Args: { p_driver_ids: string[] }; Returns: { driver_id: string; phone: string }[] };
+      set_my_phone_public: { Args: { p_public: boolean }; Returns: boolean };
+      admin_set_rental_status: { Args: { p_id: string; p_status: Database["public"]["Enums"]["rental_status"]; p_note?: string | null }; Returns: undefined };
       admin_set_review_hidden: { Args: { p_review_id: string; p_hidden: boolean }; Returns: undefined };
       admin_set_message_hidden: { Args: { p_message_id: string; p_hidden: boolean }; Returns: undefined };
       admin_get_message: {
@@ -514,6 +558,7 @@ export type Database = {
     };
     Enums: {
       user_role: "user" | "admin";
+      rental_status: "pending" | "approved" | "rejected" | "hidden";
       account_status: "active" | "suspended";
       app_locale: "ar" | "fr" | "en";
       trip_status: "scheduled" | "cancelled" | "completed";
@@ -562,6 +607,8 @@ export type Message = Tables<"messages">;
 export type Notification = Tables<"notifications">;
 export type Review = Tables<"reviews">;
 export type Report = Tables<"reports">;
+export type RentalListing = Tables<"rental_listings">;
+export type RentalStatus = Enums<"rental_status">;
 export type BookingStatus = Enums<"booking_status">;
 export type TripStatus = Enums<"trip_status">;
 export type VehicleType = Enums<"vehicle_type">;

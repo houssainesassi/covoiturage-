@@ -7,7 +7,7 @@ export async function Footer() {
   const { d } = await getI18n();
   const cols = [
     { title: d.footer.platform, links: [{ href: "/search", label: d.nav.search }, { href: "/dashboard/trips/new", label: d.nav.publish }, { href: "/#how", label: d.footer.howItWorks }] },
-    { title: d.footer.company, links: [{ href: "/#el-fahs", label: d.home.delegationsTitle }, { href: "/help", label: d.footer.help }] },
+    { title: d.footer.company, links: [{ href: "/#destinations", label: d.dest.homeTitle }, { href: "/help", label: d.footer.help }] },
     { title: d.footer.legal, links: [{ href: "/terms", label: d.footer.terms }, { href: "/privacy", label: d.footer.privacy }] },
   ];
   return (

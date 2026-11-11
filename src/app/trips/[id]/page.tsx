@@ -65,7 +65,12 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
   ]);
   const myBooking = myBookingRes.data && ["pending", "confirmed", "completed"].includes(myBookingRes.data.status) ? myBookingRes.data : null;
   const driverContact = (contactsRes.data ?? []).find((c) => c.role === "driver");
-  const driverPhone = driverContact?.phone ?? null;
+  // Confirmed passengers always get it (migration 9); other signed-in members only if
+  // the driver opted in (migration 17). Guests never: the RPC is not granted to anon.
+  const publicPhone = user && !isOwner && !driverContact?.phone
+    ? (await supabase.rpc("get_public_driver_phones", { p_driver_ids: [trip.driver_id] })).data?.[0]?.phone ?? null
+    : null;
+  const driverPhone = driverContact?.phone ?? publicPhone;
   const wasRejected = myBookingRes.data?.status === "rejected";
 
   const departed = new Date(trip.departure_at) <= new Date();

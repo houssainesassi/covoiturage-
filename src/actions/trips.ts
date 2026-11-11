@@ -5,6 +5,7 @@ import { fail, toErrorCode, type ActionResult, type ErrorCode } from "@/lib/erro
 import { tripSchema, vehicleSchema } from "@/lib/validation";
 import { tunisLocalToISO } from "@/lib/i18n/format";
 import { TN_PHONE_REGEX } from "@/lib/phone";
+import { getI18n } from "@/lib/i18n/server";
 import { authed, result } from "./_util";
 
 export async function saveTripAction(tripId: string | null, _: ActionResult | null, fd: FormData): Promise<ActionResult> {
@@ -46,11 +47,26 @@ export async function saveTripAction(tripId: string | null, _: ActionResult | nu
     vehicleId = veh.id;
   }
 
+  // No meeting point typed: use the town's name, so the ride still says where it starts and ends.
+  let originAddress = v.originAddress?.trim() || "";
+  let destinationAddress = v.destinationAddress?.trim() || "";
+  if (!originAddress || !destinationAddress) {
+    const { locale } = await getI18n();
+    const { data: towns } = await supabase.from("locations").select("id, name_ar, name_fr, name_en").in("id", [v.originId, v.destinationId]);
+    const town = (id: string) => {
+      const t = towns?.find((x) => x.id === id);
+      return t ? (locale === "ar" ? t.name_ar : locale === "en" ? t.name_en : t.name_fr) : "";
+    };
+    originAddress ||= town(v.originId);
+    destinationAddress ||= town(v.destinationId);
+    if (!originAddress || !destinationAddress) return fail("validation", { originId: "validation" });
+  }
+
   const row = {
     origin_id: v.originId,
     destination_id: v.destinationId,
-    origin_address: v.originAddress,
-    destination_address: v.destinationAddress,
+    origin_address: originAddress,
+    destination_address: destinationAddress,
     origin_lat: v.originLat,
     origin_lng: v.originLng,
     destination_lat: v.destinationLat,

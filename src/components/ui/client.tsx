@@ -149,6 +149,7 @@ export function FlashToast() {
       trip_created: d.driverTrips.created,
       trip_updated: d.driverTrips.updated,
       vehicle_saved: d.vehicles.saved,
+      rental_saved: d.rentals.saved,
       password: d.auth.passwordUpdated,
       confirmed: d.auth.emailConfirmed,
     };

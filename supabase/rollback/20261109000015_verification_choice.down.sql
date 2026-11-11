@@ -1,9 +1,7 @@
--- Reverts migration 15: back to migration 14 (email-only sign-ups, SMS-verified
--- phone needed to publish or book). Disable phone sign-ups in Supabase Auth first.
---
--- on_auth_user_phone_confirmed is left in place (dropping it needs ownership of
--- auth.users); with migration 10's handle_new_user it does nothing for accounts
--- without a confirmed email.
+-- Reverts migration 15: back to migrations 8 + 10 (complete profile needed to
+-- publish or book; profile created on email confirmation). Never restores any
+-- phone/SMS check. First unselect the "Before User Created" hook in Dashboard >
+-- Authentication > Hooks if it was selected.
 
 create or replace function public.require_complete_profile()
 returns trigger
@@ -16,9 +14,6 @@ declare
 begin
   if not public.is_profile_complete(v_user) then
     raise exception 'profile_incomplete' using errcode = 'P0001';
-  end if;
-  if not public.is_phone_verified(v_user) then
-    raise exception 'phone_unverified' using errcode = 'P0001';
   end if;
   return new;
 end;
@@ -54,21 +49,5 @@ begin
 end;
 $$;
 
-create or replace function public.hook_before_user_created(event jsonb)
-returns jsonb
-language plpgsql
-stable
-set search_path = ''
-as $$
-begin
-  if coalesce(trim(event -> 'user' ->> 'email'), '') = '' then
-    return jsonb_build_object('error', jsonb_build_object(
-      'http_code', 403,
-      'message', 'Sign up with an email address.'
-    ));
-  end if;
-  return '{}'::jsonb;
-end;
-$$;
-
+drop function if exists public.hook_before_user_created(jsonb);
 drop function if exists public.is_account_verified(uuid);

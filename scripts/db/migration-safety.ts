@@ -1,5 +1,5 @@
 /**
- * Migration safety test for 8 to 14, on a throwaway PostgreSQL server.
+ * Migration safety test for 8 to 15, on a throwaway PostgreSQL server.
  * Builds a database at migration 7 with awkward legacy accounts, then applies,
  * re-applies, rolls back and re-applies the migrations, checking no data is lost.
  *
@@ -25,7 +25,8 @@ function ok(name: string, cond: boolean, detail?: unknown) {
   console.log(`${cond ? "  ✓" : "  ✗"} ${name}`, cond ? "" : detail ?? "");
 }
 
-const allFiles = readdirSync(migDir).filter((f) => f.endsWith(".sql")).sort();
+// Later, independent migrations (16+, e.g. car rentals) are outside this check.
+const allFiles = readdirSync(migDir).filter((f) => f.endsWith(".sql") && f < "20261111").sort();
 const newFiles = allFiles.filter((f) => NEW_VERSIONS.test(f));
 
 async function run(pool: Pool) {
@@ -201,6 +202,10 @@ async function run(pool: Pool) {
 
   const pending = await signup("pending@t.tn", { full_name: "Pending", phone: "+21655000011" }, false);
   ok("a new unverified signup has no profile", (await one("select count(*)::int n from public.profiles where id = $1", [pending])).n === 0);
+  ok("no SMS phone check or phone trigger exists after 8 to 15", (await one("select to_regprocedure('public.is_phone_verified(uuid)') r")).r === null && (await one("select count(*)::int n from pg_trigger where tgrelid = 'auth.users'::regclass and tgname like '%phone%'")).n === 0);
+  const confirmed = await signup("confirmed-later@t.tn", { full_name: "Confirmed Later", phone: "+21655000015" }, false);
+  await pool.query("update auth.users set email_confirmed_at = now() where id = $1", [confirmed]);
+  ok("the sign-up phone is saved when the email is confirmed", (await one("select phone from public.profile_private where id = $1", [confirmed])).phone === "+21655000015");
 
   console.log("Rollback (15, 14, 13, 12, 10, 9, 8)");
   const beforeRollback = await snapshot();

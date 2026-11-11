@@ -2,13 +2,13 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, CalendarCheck, Flag, LayoutDashboard, Route, ShieldCheck, Star, Users } from "lucide-react";
+import { BarChart3, CalendarCheck, Flag, KeyRound, LayoutDashboard, Route, ShieldCheck, Star, Users } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { formatNumber } from "@/lib/i18n/format";
 import { cn } from "@/lib/utils";
 
 /** Dark sidebar on large screens, a sticky scrollable strip of pills on smaller ones. */
-export function AdminNav({ openReports }: { openReports: number }) {
+export function AdminNav({ openReports, rentals = false }: { openReports: number; rentals?: boolean }) {
   const { d, locale } = useI18n();
   const path = usePathname();
   const ref = useRef<HTMLElement>(null);
@@ -33,6 +33,7 @@ export function AdminNav({ openReports }: { openReports: number }) {
       items: [
         { href: "/admin/reports", label: d.admin.reports, icon: Flag, count: openReports },
         { href: "/admin/reviews", label: d.admin.reviews, icon: Star },
+        ...(rentals ? [{ href: "/admin/rentals", label: d.rentals.title, icon: KeyRound }] : []),
       ],
     },
   ];

@@ -3,6 +3,7 @@ import { requireUser, getProfile } from "@/lib/auth";
 import { getI18n } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
+import { rentalsEnabled } from "@/lib/features";
 
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
   await requireUser();
@@ -17,7 +18,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
   return (
     <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[14rem_minmax(0,1fr)] lg:py-10">
       <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
-        <DashboardSidebar isAdmin={profile?.role === "admin"} />
+        <DashboardSidebar isAdmin={profile?.role === "admin"} rentals={rentalsEnabled()} />
       </aside>
       <div className="min-w-0">
         {profile?.status === "suspended" && (

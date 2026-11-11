@@ -54,8 +54,16 @@ export function toErrorCode(error: AnyError): ErrorCode {
   if (/error sending (confirmation|recovery|magic link)? ?email/i.test(msg)) return "email_send_failed";
   if (/error sending (sms|otp)|unsupported phone provider/i.test(msg)) return "sms_send_failed";
   if (/row-level security|permission denied/i.test(msg)) return "forbidden";
-  console.error("[unmapped error]", error);
+  console.error("[unmapped error]", redactForLog(error));
   return "unknown";
+}
+
+/** Postgres details can echo the failing row (e.g. "Failing row contains (…, +21622123456, …)"). */
+const PHONE_IN_TEXT = /\+?(?:216)?[2-9]\d{7}\b/g;
+function redactForLog(error: NonNullable<AnyError>) {
+  const e = error as { name?: string; code?: string; message?: string; details?: string; hint?: string };
+  const clean = (s?: string) => (typeof s === "string" ? s.replace(PHONE_IN_TEXT, "[phone]") : s);
+  return { name: e.name, code: e.code, message: clean(e.message), details: clean(e.details), hint: clean(e.hint) };
 }
 
 export type ActionResult<T = undefined> =

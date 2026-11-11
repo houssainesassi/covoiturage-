@@ -1,7 +1,7 @@
 import { env } from "./env";
 
 /** Public URL of an object in a public Supabase Storage bucket. */
-export function publicUrl(bucket: "avatars" | "vehicles", path: string | null | undefined) {
+export function publicUrl(bucket: "avatars" | "vehicles" | "rentals", path: string | null | undefined) {
   if (!path) return null;
   return `${env.supabaseUrl}/storage/v1/object/public/${bucket}/${path.split("/").map(encodeURIComponent).join("/")}`;
 }

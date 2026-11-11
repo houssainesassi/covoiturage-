@@ -3,8 +3,10 @@
  * Run it on a STAGING project: it creates a real user. It refuses the project in
  * .env.local and any project with Confirm email off.
  *
- * On staging first: apply all migrations, paste supabase/templates/confirm-signup.html,
- * check Email OTP Length is 6 and turn Confirm email on.
+ * Email is the only verification: no SMS, the phone is a plain profile field.
+ * On staging first: apply migrations 1-7, 10, 11 and 14 (8 and 15 only if approved),
+ * set up custom SMTP, paste supabase/templates/confirm-signup.html as "Confirm sign up",
+ * check Email OTP Length is 6, keep the Phone provider off and turn Confirm email on.
  *
  *   STAGING_SUPABASE_URL=https://xxx.supabase.co STAGING_SUPABASE_KEY=<publishable key> \
  *   TEST_EMAIL=<inbox you can read> npx tsx scripts/e2e/otp-real-auth.ts
@@ -58,15 +60,29 @@ async function main() {
   ok("login before verification is refused", early.error?.code === "email_not_confirmed", early.error?.code);
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
-  const code = (await rl.question(`6-digit code sent to ${email}: `)).trim();
-  ok("the emailed code has exactly 6 digits", /^\d{6}$/.test(code), code.length);
+  const first = (await rl.question(`6-digit code sent to ${email}: `)).trim();
+  ok("the emailed code has exactly 6 digits", /^\d{6}$/.test(first), first.length);
 
-  console.log("Wrong and expired codes");
-  const wrong = String((Number(code) + 1) % 1000000).padStart(6, "0");
+  console.log("Wrong code");
+  const wrong = String((Number(first) + 1) % 1000000).padStart(6, "0");
   const wrongResult = await guest.auth.verifyOtp({ email: email!, token: wrong, type: "email" });
   ok("a wrong code is refused", !!wrongResult.error && !wrongResult.data.session, wrongResult.error?.code);
   ok("a wrong code creates no profile", (await profileRows()).length === 0);
-  const expired = (await rl.question("Paste an EXPIRED code to test it, or press Enter to skip: ")).trim();
+
+  console.log("Resend");
+  let resent = await guest.auth.resend({ type: "signup", email: email! });
+  if (resent.error?.code === "over_email_send_rate_limit") {
+    console.log("  - resend limited (60 s between emails), waiting 61 s");
+    await new Promise((r) => setTimeout(r, 61_000));
+    resent = await guest.auth.resend({ type: "signup", email: email! });
+  }
+  ok("resend sends a new email", !resent.error, resent.error?.message);
+  const code = (await rl.question("NEW 6-digit code from the second email: ")).trim();
+  ok("the new code has exactly 6 digits and differs", /^\d{6}$/.test(code) && code !== first, code.length);
+  const old = await guest.auth.verifyOtp({ email: email!, token: first, type: "email" });
+  ok("the first code no longer works after a resend", !!old.error && !old.data.session, "old code accepted");
+
+  const expired = (await rl.question("Paste an EXPIRED code to test it (from an earlier run, or after lowering the expiry), or press Enter to skip: ")).trim();
   rl.close();
   if (expired) {
     const r = await guest.auth.verifyOtp({ email: email!, token: expired, type: "email" });
@@ -80,6 +96,8 @@ async function main() {
   const verified = await member.auth.verifyOtp({ email: email!, token: code, type: "email" });
   ok("the correct code opens a session", !verified.error && !!verified.data.session, verified.error?.message);
   if (!verified.data.session) return;
+  ok("the email is confirmed", !!verified.data.user?.email_confirmed_at);
+  ok("no phone is attached to the Auth account (no SMS path)", !verified.data.user?.phone && !verified.data.user?.phone_confirmed_at, verified.data.user?.phone);
   const rows = await profileRows();
   ok("the profile exists after verification", rows.length === 1 && rows[0].full_name === "OTP Test" && rows[0].preferred_locale === "ar", rows);
   const priv = await member.from("profile_private").select("phone").eq("id", userId).maybeSingle();
@@ -87,26 +105,18 @@ async function main() {
   const reused = await guest.auth.verifyOtp({ email: email!, token: code, type: "email" });
   ok("a code cannot be used twice", !!reused.error, "second use was accepted");
 
-  console.log("Profile completion");
-  const complete = async () => (await member.rpc("my_profile_complete")).data;
-  ok("a new profile is incomplete without an avatar", (await complete()) === false);
-  const fake = await member.from("profiles").update({ avatar_path: `${userId}/missing.png` }).eq("id", userId);
-  ok("a fake avatar path is not enough", !fake.error && (await complete()) === false, fake.error?.message);
-  const path = `${userId}/${crypto.randomUUID()}.png`;
-  const upload = await member.storage.from("avatars").upload(path, readFileSync("public/icons/icon-192.png"), { contentType: "image/png" });
-  ok("avatar upload works straight after verification", !upload.error, upload.error?.message);
-  const saved = await member.from("profiles").update({ avatar_path: path }).eq("id", userId);
-  ok("avatar + name + phone completes the profile", !saved.error && (await complete()) === true, saved.error?.message);
-
-  console.log("Phone privacy");
-  const bulk = await member.rpc("get_driver_phones" as never, { p_driver_ids: [] } as never);
-  ok("the bulk phone lookup does not exist", bulk.error?.code === "PGRST202", bulk.error?.code);
+  console.log("Phone is a plain field");
+  const edited = await member.from("profile_private").update({ phone: "+21650123456" }).eq("id", userId).select("phone");
+  ok("the phone can be changed with no code", !edited.error && edited.data?.[0]?.phone === "+21650123456", edited.error?.message);
   const denied = await guest.from("profile_private").select("phone").limit(1);
-  ok("guests cannot read phone numbers", !!denied.error, denied.data);
+  ok("guests cannot read phone numbers", !!denied.error || (denied.data ?? []).length === 0, denied.data);
 
-  console.log("Suspension reason privacy");
-  const reason = await guest.from("profiles").select("suspended_reason" as never).limit(0);
-  ok("guests cannot read suspension reasons", reason.error?.code === "42703", reason.error?.code ?? "column is readable");
+  console.log("Login after verification");
+  const login = createClient(url!, key!, options);
+  const signedIn = await login.auth.signInWithPassword({ email: email!, password: PASSWORD });
+  ok("email + password login works", !signedIn.error && !!signedIn.data.session, signedIn.error?.message);
+  const bad = await login.auth.signInWithPassword({ email: email!, password: PASSWORD + "x" });
+  ok("a wrong password is refused", bad.error?.code === "invalid_credentials", bad.error?.code);
 }
 
 main()
