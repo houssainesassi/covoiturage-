@@ -213,10 +213,15 @@ begin
        or has_table_privilege(r.role, 'public.profile_private', 'TRUNCATE')
        or has_column_privilege(r.role, 'public.profile_private', 'phone_public', 'INSERT, UPDATE')
        or has_column_privilege(r.role, 'public.profile_private', 'phone_public_at', 'INSERT, UPDATE')
-       or has_column_privilege(r.role, 'public.profile_private', 'suspended_reason', 'INSERT, UPDATE')
        or has_table_privilege(r.role, 'public.phone_reveals', 'SELECT, INSERT, UPDATE, DELETE, TRUNCATE')
        or has_function_privilege(r.role, 'public.profile_private_reset_phone_consent()', 'EXECUTE') then
       raise exception 'migration 17 privilege check failed for role %', r.role;
+    end if;
+    -- suspended_reason only exists once migration 13 is applied (production is at migration 7).
+    if exists (select 1 from information_schema.columns
+               where table_schema = 'public' and table_name = 'profile_private' and column_name = 'suspended_reason')
+       and has_column_privilege(r.role, 'public.profile_private', 'suspended_reason', 'INSERT, UPDATE') then
+      raise exception 'migration 17 privilege check failed for role % (suspended_reason)', r.role;
     end if;
   end loop;
   if has_table_privilege('anon', 'public.profile_private', 'SELECT')
