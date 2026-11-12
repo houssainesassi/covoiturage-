@@ -67,7 +67,7 @@ export function MobileMenu({ signedIn }: { signedIn: boolean }) {
     setOpen(false);
   }
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       <button type="button" onClick={() => setOpen((o) => !o)} className="rounded-xl p-2 text-slate-700 hover:bg-slate-100" aria-expanded={open} aria-label={d.nav.menu}>
         {open ? <X className="size-5" /> : <Menu className="size-5" />}
       </button>
