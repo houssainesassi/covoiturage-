@@ -19,3 +19,15 @@ export function i18nName(v: unknown, locale: Locale): string {
 export function vehicleName(v: { brand: string | null; model: string }) {
   return [v.brand, v.model].filter(Boolean).join(" ");
 }
+
+/**
+ * The pickup/drop-off detail worth showing under a town name, or null when the address only
+ * repeats the town (the trip form fills an empty address with the town name, in any language).
+ */
+export function addressDetail(address: string | null | undefined, loc: Named | null | undefined): string | null {
+  const a = address?.trim();
+  if (!a) return null;
+  if (!loc) return a;
+  const norm = (s: string) => s.trim().toLocaleLowerCase();
+  return [loc.name_fr, loc.name_ar, loc.name_en].some((n) => n && norm(n) === norm(a)) ? null : a;
+}

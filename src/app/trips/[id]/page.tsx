@@ -8,7 +8,7 @@ import { getUser } from "@/lib/auth";
 import { getLocationMap } from "@/lib/locations";
 import { createClient } from "@/lib/supabase/server";
 import { fmt, formatDate, formatDuration, formatPrice, formatTime, plural } from "@/lib/i18n/format";
-import { locName, vehicleName } from "@/lib/names";
+import { addressDetail, locName, vehicleName } from "@/lib/names";
 import { routeLabel } from "@/lib/notifications";
 import { publicUrl } from "@/lib/storage";
 import { uuidSchema } from "@/lib/validation";
@@ -112,13 +112,13 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
                 <span className="absolute -start-8 top-1 size-6 rounded-full border-4 border-brand-600 bg-white" aria-hidden />
                 <p className="text-2xl font-bold tabular-nums">{formatTime(trip.departure_at, locale)}</p>
                 <p className="text-lg font-bold">{locName(origin, locale)}</p>
-                <p className="text-sm text-slate-500">{d.trip.pickup}: {trip.origin_address}</p>
+                {addressDetail(trip.origin_address, origin) && <p className="text-sm text-slate-500">{d.trip.pickup}: {trip.origin_address}</p>}
               </li>
               <li className="relative">
                 <span className="absolute -start-8 top-1 size-6 rounded-full border-4 border-accent-500 bg-white" aria-hidden />
                 {arrival && <p className="text-2xl font-bold tabular-nums">{formatTime(arrival, locale)}</p>}
                 <p className="text-lg font-bold">{locName(destination, locale)}</p>
-                <p className="text-sm text-slate-500">{d.trip.dropoff}: {trip.destination_address}</p>
+                {addressDetail(trip.destination_address, destination) && <p className="text-sm text-slate-500">{d.trip.dropoff}: {trip.destination_address}</p>}
               </li>
             </ol>
             <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 border-t border-slate-100 pt-4 text-sm text-slate-600">
@@ -176,7 +176,7 @@ export default async function TripPage({ params, searchParams }: PageProps<"/tri
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <h2 className="font-semibold">{d.trip.preferences}</h2>
-                <p className="mt-1 text-sm text-slate-500">{plural(d.trip.tripsDriven, driver.trips_driven, locale)}</p>
+                {driver.trips_driven > 0 && <p className="mt-1 text-sm text-slate-500">{plural(d.trip.tripsDriven, driver.trips_driven, locale)}</p>}
                 {driver.bio && <p className="mt-3 text-sm text-slate-600">{driver.bio}</p>}
               </div>
               {user && !isOwner && <ReportDialog userId={driver.id} name={driver.full_name} tripId={trip.id} compact />}

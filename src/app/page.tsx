@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Banknote, Car, CirclePlus, KeyRound, Search, Users } from "lucide-react";
+import { ArrowRight, Banknote, Car, CirclePlus, KeyRound, MapPin, Search, Users } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getLocations } from "@/lib/locations";
 import { toLite } from "@/lib/location-lite";
@@ -14,6 +14,7 @@ import { TRIP_CARD_SELECT, toCard, withDriverPhones } from "@/lib/queries";
 import { CarArt, DestinationArt } from "@/components/destinations/art";
 import { DestinationPicker } from "@/components/destinations/destination-picker";
 import { TripCard } from "@/components/trips/trip-card";
+import { SearchForm } from "@/components/search/search-form";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/misc";
 import type { Location } from "@/lib/supabase/database.types";
@@ -48,23 +49,30 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* Hero: one sentence, one picture, two actions */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-brand-800 to-brand-700 text-white">
-        <div className="mx-auto grid max-w-7xl items-center gap-4 px-4 pb-4 pt-6 sm:px-6 md:grid-cols-[1.1fr_1fr] md:py-12">
-          <div>
-            <h1 className="text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl animate-fade-up">{d.home.heroTitle}</h1>
+      {/* Hero: the promise, then the search itself, so the first tap already looks for a ride. */}
+      <section className="relative isolate overflow-hidden bg-brand-900 text-white">
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(120%_80%_at_85%_0%,var(--color-brand-600)_0%,transparent_60%),radial-gradient(80%_60%_at_0%_100%,rgb(247_106_37/0.22)_0%,transparent_60%)]" aria-hidden />
+        <svg className="absolute inset-x-0 bottom-0 -z-10 h-24 w-full text-white/[0.06] sm:h-32" viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden>
+          <path d="M0 110 C 300 40, 600 140, 1200 30" fill="none" stroke="currentColor" strokeWidth="28" />
+          <path d="M0 110 C 300 40, 600 140, 1200 30" fill="none" stroke="rgb(255 255 255 / 0.25)" strokeWidth="2" strokeDasharray="18 16" />
+        </svg>
+        <div className="mx-auto grid max-w-7xl items-center gap-6 px-4 pb-8 pt-7 sm:px-6 md:grid-cols-[1.2fr_0.8fr] md:pb-14 md:pt-14">
+          <div className="animate-fade-up">
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-brand-100 ring-1 ring-white/15">
+              <MapPin className="size-3.5" aria-hidden />{d.footer.tagline}
+            </p>
+            <h1 className="mt-3 text-[2rem] font-extrabold leading-[1.1] tracking-tight sm:text-5xl">{d.home.heroTitle}</h1>
             <p className="mt-2 text-brand-100 sm:text-lg">{d.home.heroSubtitle}</p>
-            <div className="mt-5 grid grid-cols-2 gap-3 sm:max-w-md">
-              <Link href="/search" className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-white px-3 text-center font-bold text-brand-800 shadow-lg transition hover:bg-brand-50">
-                <Search className="size-5 shrink-0" aria-hidden />{d.home.heroFind}
-              </Link>
-              <Link href="/dashboard/trips/new" className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-accent-500 px-3 text-center font-bold text-white shadow-lg transition hover:bg-accent-600">
-                <CirclePlus className="size-5 shrink-0" aria-hidden />{d.home.heroOffer}
-              </Link>
-            </div>
           </div>
-          <div className="relative mx-auto w-full max-w-[12rem] md:max-w-md" aria-hidden>
+          <div className="relative mx-auto hidden w-full max-w-sm md:block" aria-hidden>
             <CarArt className="w-full drop-shadow-2xl" />
+          </div>
+          <div className="md:col-span-2">
+            <SearchForm locations={locations.map(toLite)} />
+            <Link href="/dashboard/trips/new" className="mt-3 inline-flex items-center gap-2 rounded-full px-1 text-sm font-semibold text-white/90 transition hover:text-white">
+              <CirclePlus className="size-5 text-accent-400" aria-hidden />{d.home.heroOffer}
+              <span className="hidden text-white/60 sm:inline">· {d.home.heroOfferHint}</span>
+            </Link>
           </div>
         </div>
       </section>

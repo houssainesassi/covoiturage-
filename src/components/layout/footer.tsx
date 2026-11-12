@@ -12,10 +12,10 @@ export async function Footer() {
   ];
   return (
     <footer className="mt-auto border-t border-slate-200 bg-white">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-4">
-        <div>
+      <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-6 gap-y-8 px-4 py-8 sm:px-6 md:grid-cols-4 md:gap-10 md:py-12">
+        <div className="col-span-2 md:col-span-1">
           <Logo name={d.common.appName} />
-          <p className="mt-3 max-w-xs text-sm text-slate-500">{d.footer.tagline}</p>
+          <p className="mt-2 max-w-xs text-sm text-slate-500">{d.footer.tagline}</p>
         </div>
         {cols.map((c) => (
           <div key={c.title}>

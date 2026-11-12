@@ -5,7 +5,7 @@ import { getI18n } from "@/lib/i18n/server";
 import { getLocationMap } from "@/lib/locations";
 import { createClient } from "@/lib/supabase/server";
 import { fmt, formatDate, formatDateTime, formatPrice, formatTime, plural } from "@/lib/i18n/format";
-import { locName } from "@/lib/names";
+import { addressDetail, locName } from "@/lib/names";
 import { routeLabel } from "@/lib/notifications";
 import { cancelBookingAction } from "@/actions/bookings";
 import { PageHeader } from "@/components/ui/card";
@@ -35,8 +35,9 @@ export default async function BookingsPage({ searchParams }: PageProps<"/dashboa
     : q.order("created_at", { ascending: false }).limit(100);
   const [{ data: raw }, { data: pending }] = await Promise.all([q, supabase.rpc("pending_reviews")]);
   const bookings = tab === "upcoming" ? raw : (raw ?? []).filter((b) => !["pending", "confirmed", "rejected"].includes(b.status) || b.trip!.departure_at <= now);
-  // get_trip_contacts only returns the driver's number for a confirmed booking.
-  const confirmedTripIds = [...new Set((bookings ?? []).filter((b) => b.status === "confirmed" && b.trip!.departure_at > now).map((b) => b.trip!.id))];
+  // A passenger gets the driver's number as soon as they book, pending or confirmed (migration 18;
+  // before it, get_trip_contacts simply returns nothing for a pending booking).
+  const confirmedTripIds = [...new Set((bookings ?? []).filter((b) => ["pending", "confirmed"].includes(b.status) && b.trip!.departure_at > now).map((b) => b.trip!.id))];
   const phoneOf = new Map(await Promise.all(confirmedTripIds.map(async (id) => {
     const { data } = await supabase.rpc("get_trip_contacts", { p_trip_id: id });
     return [id, data?.find((c) => c.role === "driver")?.phone ?? null] as const;
@@ -61,7 +62,7 @@ export default async function BookingsPage({ searchParams }: PageProps<"/dashboa
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">{formatDate(t.departure_at, locale)} · {formatTime(t.departure_at, locale)}</p>
                     <Link href={`/trips/${t.id}`} className="mt-1 block text-lg font-bold hover:text-brand-700">{routeLabel(locName(locs.get(t.origin_id), locale), locName(locs.get(t.destination_id), locale), locale)}</Link>
-                    <p className="text-sm text-slate-500">{t.origin_address}</p>
+                    {addressDetail(t.origin_address, locs.get(t.origin_id)) && <p className="text-sm text-slate-500">{t.origin_address}</p>}
                   </div>
                   <Badge tone={bookingTone[b.status]}>{d.status.booking[b.status]}</Badge>
                 </div>

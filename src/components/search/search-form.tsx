@@ -36,12 +36,12 @@ export function SearchForm({
   };
 
   return (
-    <form onSubmit={submit} className={cn("grid gap-2 rounded-2xl bg-white p-2 shadow-[var(--shadow-lift)] ring-1 ring-slate-200", compact ? "md:grid-cols-[1fr_auto_1fr_10rem_7rem_auto]" : "md:grid-cols-[1fr_auto_1fr_11rem_8rem_auto]")} role="search">
-      <LocationCombobox id="search-from" locations={locations} value={from} onChange={setFrom} placeholder={d.search.placeholderFrom} inputClassName="border-transparent bg-slate-50" />
-      <button type="button" onClick={() => { setFrom(to); setTo(from); }} className="mx-auto flex size-10 items-center justify-center self-center rounded-full text-slate-500 hover:bg-slate-100" aria-label={d.search.swap}>
+    <form onSubmit={submit} className={cn("grid grid-cols-2 gap-2 rounded-2xl bg-white p-2 text-slate-900 shadow-[var(--shadow-lift)] ring-1 ring-slate-200", compact ? "md:grid-cols-[1fr_auto_1fr_10rem_7rem_auto]" : "md:grid-cols-[1fr_auto_1fr_11rem_8rem_auto]")} role="search">
+      <div className="col-span-2 md:col-span-1"><LocationCombobox id="search-from" locations={locations} value={from} onChange={setFrom} placeholder={d.search.placeholderFrom} inputClassName="border-transparent bg-slate-50" /></div>
+      <button type="button" onClick={() => { setFrom(to); setTo(from); }} className="col-span-2 -my-3 mx-auto relative z-10 flex size-10 items-center border border-slate-200 bg-white shadow-sm md:col-span-1 md:my-0 md:border-0 md:shadow-none justify-center self-center rounded-full text-slate-500 hover:bg-slate-100" aria-label={d.search.swap}>
         <ArrowLeftRight className="size-4 rotate-90 md:rotate-0" />
       </button>
-      <LocationCombobox id="search-to" locations={locations} value={to} onChange={setTo} placeholder={d.search.placeholderTo} inputClassName="border-transparent bg-slate-50" />
+      <div className="col-span-2 md:col-span-1"><LocationCombobox id="search-to" locations={locations} value={to} onChange={setTo} placeholder={d.search.placeholderTo} inputClassName="border-transparent bg-slate-50" /></div>
       <label className="relative">
         <span className="sr-only">{d.search.date}</span>
         <CalendarDays className="pointer-events-none absolute start-3 top-1/2 size-5 -translate-y-1/2 text-brand-600" aria-hidden />
@@ -54,7 +54,7 @@ export function SearchForm({
           {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n}</option>)}
         </select>
       </label>
-      <button type="submit" className="flex h-12 items-center justify-center gap-2 rounded-xl bg-brand-600 px-6 font-semibold text-white hover:bg-brand-700">
+      <button type="submit" className="col-span-2 flex h-12 items-center justify-center gap-2 rounded-xl bg-brand-600 px-6 font-bold text-white shadow-sm transition hover:bg-brand-700 active:scale-[0.98] md:col-span-1">
         <Search className="size-5" aria-hidden /> {d.search.submit}
       </button>
     </form>
