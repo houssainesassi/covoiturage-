@@ -1,14 +1,20 @@
 "use client";
 import { useFormAction, withNetworkError } from "@/lib/use-form-action";
 import Link from "next/link";
-import { forgotPasswordAction, loginAction, registerAction, updatePasswordAction } from "@/actions/auth";
+import { useEffect, useState } from "react";
+import { confirmEmailLinkAction, forgotPasswordAction, loginAction, registerAction, resendConfirmationAction, updatePasswordAction } from "@/actions/auth";
+import { fmt } from "@/lib/i18n/format";
 import { useI18n } from "@/lib/i18n/client";
 import { Checkbox, Field, FormError, Input } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/client";
+import { Button } from "@/components/ui/button";
 
 const login = withNetworkError(loginAction);
 const register = withNetworkError(registerAction);
 const forgot = withNetworkError(forgotPasswordAction);
+const resend = withNetworkError(resendConfirmationAction);
+const confirmLink = withNetworkError(confirmEmailLinkAction);
+const RESEND_SECONDS = 60;
 
 export function LoginForm({ next, notice }: { next?: string; notice?: string }) {
   const { d } = useI18n();
@@ -97,6 +103,67 @@ export function NewPasswordForm({ redirectAfter }: { redirectAfter?: boolean }) 
       {state?.ok && <p className="rounded-xl bg-brand-50 p-3 text-sm text-brand-800">{d.settings.passwordSaved}</p>}
       {state && !state.ok && !state.fields && <FormError message={d.errors[state.error]} />}
       <SubmitButton pending={pending} size="lg" className="w-full">{d.auth.updatePassword}</SubmitButton>
+    </form>
+  );
+}
+
+/** "Resend the email" on /auth/check-email, with a 60 s wait between sends (Supabase refuses faster resends). */
+export function ResendConfirmationForm({ email, next, startLocked }: { email: string; next?: string; startLocked?: boolean }) {
+  const { d } = useI18n();
+  const [state, action, pending] = useFormAction(resend);
+  const [wait, setWait] = useState(startLocked ? RESEND_SECONDS : 0);
+  // Restart the wait after each successful send (state adjusted during render, not in an effect).
+  const [seen, setSeen] = useState(state);
+  if (state !== seen) {
+    setSeen(state);
+    if (state?.ok) setWait(RESEND_SECONDS);
+  }
+  useEffect(() => {
+    if (wait <= 0) return;
+    const t = setTimeout(() => setWait((w) => w - 1), 1000);
+    return () => clearTimeout(t);
+  }, [wait]);
+  const err = state && !state.ok ? d.errors[state.fields?.email ?? state.error] : undefined;
+  return (
+    <form onSubmit={action} className="space-y-3">
+      <input type="hidden" name="next" value={next ?? ""} />
+      {email ? (
+        <input type="hidden" name="email" value={email} />
+      ) : (
+        <Field label={d.auth.email} htmlFor="resend-email">
+          <Input id="resend-email" name="email" type="email" autoComplete="email" required dir="ltr" />
+        </Field>
+      )}
+      {state?.ok && <p role="status" className="rounded-xl bg-brand-50 p-3 text-sm text-brand-800">{d.auth.resendSent}</p>}
+      {err && <FormError message={err} />}
+      <Button type="submit" variant="outline" className="w-full" loading={pending} disabled={pending || wait > 0}>
+        {wait > 0 ? fmt(d.auth.resendIn, { seconds: String(wait) }) : d.auth.resendEmail}
+      </Button>
+    </form>
+  );
+}
+
+/** One button on /auth/confirm: the token from the email link is used only when pressed. */
+export function ConfirmLinkForm({ tokenHash, type, label }: { tokenHash: string; type: string; label: string }) {
+  const { d } = useI18n();
+  const [state, action, pending] = useFormAction(confirmLink);
+  return (
+    <form onSubmit={action} className="space-y-4">
+      <input type="hidden" name="token_hash" value={tokenHash} />
+      <input type="hidden" name="type" value={type} />
+      {state && !state.ok && (
+        <div className="space-y-2">
+          <FormError message={d.errors[state.error]} />
+          {state.error === "link_invalid" && (
+            <p className="text-sm">
+              <Link href={type === "recovery" ? "/auth/forgot-password" : "/auth/check-email"} className="font-semibold text-brand-700 hover:underline">
+                {type === "recovery" ? d.auth.sendResetLink : d.auth.resendEmail}
+              </Link>
+            </p>
+          )}
+        </div>
+      )}
+      <SubmitButton pending={pending} size="lg" className="w-full">{label}</SubmitButton>
     </form>
   );
 }

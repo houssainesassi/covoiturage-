@@ -8,8 +8,9 @@ export default async function AuthErrorPage() {
   return (
     <AuthShell title={d.errorPage.title}>
       <p className="text-slate-600">{d.auth.linkInvalid}</p>
-      <div className="mt-6 flex gap-2">
+      <div className="mt-6 flex flex-wrap gap-2">
         <Link href="/auth/login" className={buttonClass("primary")}>{d.auth.backToLogin}</Link>
+        <Link href="/auth/check-email" className={buttonClass("outline")}>{d.auth.resendEmail}</Link>
         <Link href="/auth/forgot-password" className={buttonClass("outline")}>{d.auth.forgotPassword}</Link>
       </div>
     </AuthShell>

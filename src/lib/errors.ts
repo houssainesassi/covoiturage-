@@ -11,7 +11,7 @@ const KNOWN = new Set<string>([
   "invalid_vehicle_year", "invalid_rating", "trip_not_completed", "review_window_closed", "not_participant",
   "duplicate_review", "cannot_moderate_self", "user_not_found", "report_not_found", "review_not_found",
   "message_not_found", "profile_incomplete", "avatar_required", "phone_required", "phone_unverified",
-  "account_unverified", "verification_unavailable",
+  "account_unverified", "verification_unavailable", "phone_taken",
 ]);
 
 type AnyError = { name?: string; message?: string; code?: string; status?: number } | null | undefined;
@@ -22,6 +22,8 @@ export function toErrorCode(error: AnyError): ErrorCode {
   const msg = error.message ?? "";
   if (KNOWN.has(msg)) return msg as ErrorCode;
   if (error.name === "AuthRetryableFetchError") return "network_error";
+  // Migration 20: one account per phone number (unique index on profile_private.phone).
+  if (error.code === "23505" && /profile_private_phone/.test(msg)) return "phone_taken";
   switch (error.code) {
     case "invalid_credentials": return "invalid_credentials";
     case "email_not_confirmed": return "email_not_confirmed";

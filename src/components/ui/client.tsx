@@ -151,6 +151,9 @@ export function FlashToast() {
       vehicle_saved: d.vehicles.saved,
       rental_saved: d.rentals.saved,
       password: d.auth.passwordUpdated,
+      password_reset: d.auth.passwordResetDone,
+      email_changed: d.settings.emailChanged,
+      email_change_pending: d.settings.emailChangePending,
       confirmed: d.auth.emailConfirmed,
     };
     if (messages[key]) toast.success(messages[key]);

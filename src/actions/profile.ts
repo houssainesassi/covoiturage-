@@ -36,7 +36,11 @@ export async function updateProfileAction(_: ActionResult | null, fd: FormData):
     .eq("id", userId);
   if (error) return fail(toErrorCode(error));
   const { error: e2 } = await savePrivateProfile(supabase, userId, { phone: v.phone, date_of_birth: v.dob });
-  if (e2) return fail(e2.code === "23514" ? "validation" : toErrorCode(e2), e2.code === "23514" ? { dob: "validation" } : undefined);
+  if (e2) {
+    const code = toErrorCode(e2);
+    if (code === "phone_taken") return fail(code, { phone: code });
+    return fail(e2.code === "23514" ? "validation" : code, e2.code === "23514" ? { dob: "validation" } : undefined);
+  }
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -51,7 +55,11 @@ export async function savePhoneAction(_: ActionResult | null, fd: FormData): Pro
     return fail(code === "validation" ? "invalid_phone" : code, { phone: code === "validation" ? "invalid_phone" : code });
   }
   const { error } = await savePrivateProfile(ctx.supabase, ctx.userId, { phone: parsed.data });
-  if (error) return error.code === "23514" ? fail("invalid_phone", { phone: "invalid_phone" }) : fail(toErrorCode(error));
+  if (error) {
+    if (error.code === "23514") return fail("invalid_phone", { phone: "invalid_phone" });
+    const code = toErrorCode(error);
+    return fail(code, code === "phone_taken" ? { phone: code } : undefined);
+  }
   revalidatePath("/dashboard", "layout");
   return { ok: true };
 }
@@ -102,7 +110,10 @@ export async function completeProfileAction(_: ActionResult | null, fd: FormData
   const { error } = await supabase.from("profiles").update({ full_name: v.fullName, avatar_path: avatarPath }).eq("id", userId);
   if (error) return fail(toErrorCode(error));
   const { error: e2 } = await savePrivateProfile(supabase, userId, { phone: v.phone });
-  if (e2) return fail(e2.code === "23514" ? "invalid_phone" : toErrorCode(e2), e2.code === "23514" ? { phone: "invalid_phone" } : undefined);
+  if (e2) {
+    const code = e2.code === "23514" ? "invalid_phone" : toErrorCode(e2);
+    return fail(code, code === "invalid_phone" || code === "phone_taken" ? { phone: code } : undefined);
+  }
 
   const { data: complete, error: e3 } = await supabase.rpc("my_profile_complete");
   if (!e3 && !complete) return fail("profile_incomplete");

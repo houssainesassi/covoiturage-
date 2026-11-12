@@ -4,12 +4,16 @@ import { redirect } from "next/navigation";
 import { isSupabaseConfigured } from "./env";
 import { createClient } from "./supabase/server";
 
-/** Verified current user (validated with the Auth server), or null. */
+/**
+ * Verified current user (validated with the Auth server), or null.
+ * A session whose email is not confirmed counts as signed out: with "Confirm
+ * email" on, Supabase never issues one, so this is only a second line of defence.
+ */
 export const getUser = cache(async () => {
   if (!isSupabaseConfigured()) return null;
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
-  return data.user ?? null;
+  return data.user?.email_confirmed_at ? data.user : null;
 });
 
 export const getProfile = cache(async () => {

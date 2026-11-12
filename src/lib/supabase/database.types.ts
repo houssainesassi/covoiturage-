@@ -468,6 +468,7 @@ export type Database = {
         Returns: { conversation_id: string; unread: number }[];
       };
       my_profile_complete: { Args: Record<string, never>; Returns: boolean };
+      ensure_my_profile: { Args: Record<string, never>; Returns: boolean };
       get_trip_contacts: {
         Args: { p_trip_id: string };
         Returns: { user_id: string; full_name: string; phone: string | null; role: string; plate_number: string | null }[];

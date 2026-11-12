@@ -17,8 +17,15 @@ export default async function CompleteProfilePage({ searchParams }: PageProps<"/
   const next = rawNext.startsWith("/auth") ? "/" : rawNext;
   const user = await requireUser(`/auth/complete-profile?next=${encodeURIComponent(next)}`);
   const supabase = await createClient();
-  const [profile, { data: priv }, { data: complete }] = await Promise.all([
-    getProfile(),
+  let profile = await getProfile();
+  if (!profile) {
+    // Accounts created before migration 20 may have no profile row: create it from the
+    // sign-up details (never overwrites). Without migration 20 the call fails and the
+    // page behaves as before.
+    const { data: created } = await supabase.rpc("ensure_my_profile");
+    if (created) profile = (await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle()).data;
+  }
+  const [{ data: priv }, { data: complete }] = await Promise.all([
     supabase.from("profile_private").select("phone").eq("id", user.id).maybeSingle(),
     supabase.rpc("my_profile_complete"),
   ]);

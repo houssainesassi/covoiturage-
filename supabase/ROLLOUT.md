@@ -1,5 +1,7 @@
 # Production rollout checklist: email code, profile completion, migrations 8-13
 
+> **Superseded (2026-11-12)** for sign-up: email codes and SMS are not used. Current runbook: `supabase/rollout-20/README.md`.
+
 **Status: not approved. Nothing here has been run on production.** Each step that changes production is marked **CHANGE** and needs explicit approval first.
 
 Where steps say to stop, stop and leave production as it is. Do not fix forward.

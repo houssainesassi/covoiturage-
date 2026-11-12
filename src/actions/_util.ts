@@ -12,7 +12,8 @@ export async function authed(): Promise<Authed> {
   if (!isSupabaseConfigured()) return { error: fail("not_configured") as Failure };
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
-  if (!data.user) return { error: fail("not_authenticated") as Failure };
+  // Same rule as getUser(): an unconfirmed email is not a usable account.
+  if (!data.user?.email_confirmed_at) return { error: fail("not_authenticated") as Failure };
   return { supabase, userId: data.user.id };
 }
 

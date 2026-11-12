@@ -1,5 +1,7 @@
 # Staging environment
 
+> **Superseded (2026-11-12)** for sign-up: email codes and SMS are not used. Current runbook: `supabase/rollout-20/README.md`.
+
 Staging is a second, separate Supabase project plus a Vercel preview connected to it. Nothing here touches production. The scripts refuse to change the project in `.env.local`.
 
 ## 1. Create it (you do this)
