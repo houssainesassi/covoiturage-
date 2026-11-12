@@ -69,7 +69,7 @@ const trip = () => ({
   vehicle: null,
 });
 const passengerProfile = { id: PASSENGER, full_name: "Test Passenger", avatar_path: null, role: "user", status: "active", rating_avg: 0, rating_count: 0, trips_driven: 0, created_at: iso(now) };
-const user = { id: PASSENGER, aud: "authenticated", role: "authenticated", email: "passenger@example.test", app_metadata: { provider: "email" }, user_metadata: {}, created_at: iso(now) };
+const user = { id: PASSENGER, aud: "authenticated", role: "authenticated", email: "passenger@example.test", app_metadata: { provider: "email" }, user_metadata: {}, created_at: iso(now), email_confirmed_at: iso(now) };
 
 const b64url = (s: string) => Buffer.from(s).toString("base64url");
 const jwt = `${b64url(JSON.stringify({ alg: "HS256", typ: "JWT" }))}.${b64url(JSON.stringify({ sub: PASSENGER, role: "authenticated", aud: "authenticated", exp: Math.floor(now / 1000) + 86400 }))}.sig`;
@@ -192,13 +192,13 @@ async function main() {
     ok("request_booking was called", state.calls.some((c) => c.fn === "request_booking"));
     ok("popup appears after the booking is confirmed", await modal(page).isVisible());
     const dialogText = (await page.locator("dialog[open]").innerText()).replace(/\s+/g, " ");
-    ok("title: تمّ الحجز بنجاح! 🎉", dialogText.includes("تمّ الحجز بنجاح! 🎉"), dialogText);
+    ok("title: تمّ الحجز بنجاح!", dialogText.includes("تمّ الحجز بنجاح!"), dialogText);
     ok("confirmed: no 'driver has not confirmed' note", (await page.getByTestId("booking-pending-note").count()) === 0);
     ok("question asked in Derja", dialogText.includes("تحب تتواصل مع صاحب العرض بالتليفون ولا تكمّل من داخل التطبيق؟"), dialogText);
     const call = page.getByTestId("booking-confirmed-call");
-    ok("call button: 📞 اتصل بيه", (await call.innerText()).includes("📞 اتصل بيه"));
+    ok("call button: اتصل بيه", (await call.innerText()).includes("اتصل بيه"));
     ok("call button dials the driver's number", (await call.getAttribute("href")) === `tel:${PHONE}`, await call.getAttribute("href"));
-    ok("in-app button: 💬 داخل التطبيق", await page.locator("dialog[open]").getByRole("button", { name: "💬 داخل التطبيق" }).isVisible());
+    ok("in-app button: داخل التطبيق", await page.locator("dialog[open]").getByRole("button", { name: "داخل التطبيق" }).isVisible());
     ok("driver card shows the number once confirmed", await cardPhone(page).isVisible());
     ok("no contradicting 'request sent, driver will reply' toast", !(await page.locator("[data-sonner-toaster]").innerText().catch(() => "")).includes("الشيفور باش يجاوبك"));
     const callBox = await call.boundingBox();
@@ -218,7 +218,7 @@ async function main() {
     await page.reload();
     await modal(page).waitFor({ state: "visible", timeout: 10_000 });
     state.calls = [];
-    await page.locator("dialog[open]").getByRole("button", { name: "💬 داخل التطبيق" }).click();
+    await page.locator("dialog[open]").getByRole("button", { name: "داخل التطبيق" }).click();
     await page.waitForURL(`**/dashboard/messages/${CONVERSATION}`, { timeout: 20_000 }).catch(() => {});
     const conv = state.calls.find((c) => c.fn === "start_conversation");
     ok("start_conversation called for this ride", !!conv && (conv.body as { p_trip_id: string }).p_trip_id === TRIP, conv);
@@ -245,7 +245,7 @@ async function main() {
     ok("pending: popup offers the driver's number", (await page.getByTestId("booking-confirmed-call").getAttribute("href").catch(() => null)) === `tel:${PHONE}`);
     ok("pending: driver number in the card right after booking", await cardPhone(page).isVisible());
     const pendingText = (await page.locator("dialog[open]").innerText().catch(() => "")).replace(/\s+/g, " ");
-    ok("pending: title says sent, not confirmed", pendingText.includes("الحجز تبعث! 🎉") && !pendingText.includes("تمّ الحجز بنجاح"), pendingText);
+    ok("pending: title says sent, not confirmed", pendingText.includes("الحجز تبعث!") && !pendingText.includes("تمّ الحجز بنجاح"), pendingText);
     ok("pending: popup says the driver has not confirmed yet", pendingText.includes("الشيفور مازال ما أكّدش الحجز"), pendingText);
     ok("pending: booking stays pending after the number is shown", state.booking?.status === "pending", state.booking);
     await page.keyboard.press("Escape");
@@ -266,7 +266,7 @@ async function main() {
     await modal(page).waitFor({ state: "visible", timeout: 20_000 });
     ok("no call link without a number", (await page.locator('dialog[open] a[href^="tel:"]').count()) === 0);
     ok("says to send a message instead", (await page.locator("dialog[open]").innerText()).includes("ابعثلو ميساج"));
-    ok("in-app button still offered", await page.locator("dialog[open]").getByRole("button", { name: "💬 داخل التطبيق" }).isVisible());
+    ok("in-app button still offered", await page.locator("dialog[open]").getByRole("button", { name: "داخل التطبيق" }).isVisible());
     await ctx.close();
 
     console.log("Phone layout");
@@ -280,7 +280,7 @@ async function main() {
     const box = await page.locator("dialog[open]").boundingBox();
     ok("popup fits the screen width", !!box && box.x >= 0 && box.x + box.width <= 375, box);
     ok("popup fits the screen height", !!box && box.y >= 0 && box.y + box.height <= 740, box);
-    const [b1, b2] = [await page.getByTestId("booking-confirmed-call").boundingBox(), await page.locator("dialog[open]").getByRole("button", { name: "💬 داخل التطبيق" }).boundingBox()];
+    const [b1, b2] = [await page.getByTestId("booking-confirmed-call").boundingBox(), await page.locator("dialog[open]").getByRole("button", { name: "داخل التطبيق" }).boundingBox()];
     ok("buttons are stacked and easy to tap", !!b1 && !!b2 && b2.y >= b1.y + b1.height - 1 && b1.height >= 44 && b2.height >= 44, { b1, b2 });
     ok("no horizontal scroll", await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     await shot(page, "phone-popup");

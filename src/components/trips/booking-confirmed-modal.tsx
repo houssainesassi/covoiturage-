@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { Phone } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { formatTunisianPhone } from "@/lib/phone";
 import { buttonClass } from "@/components/ui/button";
@@ -58,18 +59,18 @@ export function BookingConfirmedModal({ bookingId, tripId, driverPhone, pending 
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {driverPhone ? (
             <a href={`tel:${driverPhone}`} onClick={() => setOpen(false)} data-testid="booking-confirmed-call" className={buttonClass("primary", "lg", "h-auto min-h-13 w-full flex-col gap-0.5 py-2.5")}>
-              <span>{d.trip.bookingConfirmedCall}</span>
+              <span className="flex items-center gap-2"><Phone className="size-4" aria-hidden />{d.trip.bookingConfirmedCall}</span>
               <span className="text-sm font-semibold tabular-nums opacity-90" dir="ltr">{formatTunisianPhone(driverPhone)}</span>
             </a>
           ) : (
             <div className="flex flex-col gap-1.5">
-              <span aria-disabled="true" className={buttonClass("primary", "lg", "w-full pointer-events-none opacity-50")}>{d.trip.bookingConfirmedCall}</span>
+              <span aria-disabled="true" className={buttonClass("primary", "lg", "w-full pointer-events-none opacity-50")}><Phone className="size-4" aria-hidden />{d.trip.bookingConfirmedCall}</span>
               <p className="text-xs text-slate-500">{d.trip.noDriverPhone}</p>
             </div>
           )}
           {/* Opens the conversation (the page navigates away): don't show this again on return. */}
           <div className="grid" onClickCapture={() => shownNow.delete(bookingId)}>
-            <ContactButton tripId={tripId} label={d.trip.bookingConfirmedInApp} variant="outline" size="lg" icon={false} className="h-full min-h-13 w-full" />
+            <ContactButton tripId={tripId} label={d.trip.bookingConfirmedInApp} variant="outline" size="lg" className="h-full min-h-13 w-full" />
           </div>
         </div>
       </div>
