@@ -68,17 +68,21 @@ export function Pagination({ page, totalPages, hrefFor, labels }: { page: number
   );
 }
 
-export function StatCard({ label, value, icon, tone = "brand" }: { label: ReactNode; value: ReactNode; icon?: ReactNode; tone?: "brand" | "accent" | "slate" }) {
+export function StatCard({ label, value, icon, tone = "brand", href, highlight }: { label: ReactNode; value: ReactNode; icon?: ReactNode; tone?: "brand" | "accent" | "slate"; href?: string; highlight?: boolean }) {
   const t = tone === "accent" ? "bg-accent-50 text-accent-600" : tone === "slate" ? "bg-slate-100 text-slate-600" : "bg-brand-50 text-brand-600";
-  return (
-    <div className="rounded-[var(--radius-card)] border border-slate-200/80 bg-white p-4 shadow-[var(--shadow-card)] sm:p-5">
-      <div className="flex items-center gap-3">
-        {icon && <span className={cn("flex size-10 items-center justify-center rounded-xl", t)}>{icon}</span>}
-        <div className="min-w-0">
-          <p className="truncate text-xs font-medium text-slate-500 sm:text-sm">{label}</p>
-          <p className="text-xl font-bold text-slate-900 sm:text-2xl">{value}</p>
-        </div>
+  const body = (
+    <div className="flex items-center gap-3">
+      {icon && <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", t)}>{icon}</span>}
+      <div className="min-w-0">
+        <p className="text-xl font-extrabold tabular-nums text-slate-900 sm:text-2xl">{value}</p>
+        <p className="line-clamp-2 text-xs font-medium leading-snug text-slate-500 sm:text-sm">{label}</p>
       </div>
     </div>
   );
+  const cls = cn(
+    "block rounded-[var(--radius-card)] border bg-white p-4 shadow-[var(--shadow-card)] sm:p-5",
+    highlight ? "border-accent-300 ring-2 ring-accent-100" : "border-slate-200/80",
+    href && "transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-[var(--shadow-lift)]",
+  );
+  return href ? <Link href={href} className={cls}>{body}</Link> : <div className={cls}>{body}</div>;
 }

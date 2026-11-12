@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { Bell, CalendarCheck, Car, MessageCircle, Star, UserRound } from "lucide-react";
+import { Bell, CalendarCheck, Car, MessageCircle, PlusCircle, Search, Star, UserRound } from "lucide-react";
 import { getProfile, requireUser } from "@/lib/auth";
 import { getI18n } from "@/lib/i18n/server";
 import { getLocationMap } from "@/lib/locations";
 import { createClient } from "@/lib/supabase/server";
 import { fmt, plural } from "@/lib/i18n/format";
-import { PageHeader } from "@/components/ui/card";
+import { Avatar } from "@/components/ui/avatar";
 import { Badge, bookingTone } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState, StatCard } from "@/components/ui/misc";
@@ -40,12 +40,25 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader title={fmt(d.dashboard.welcome, { name: profile?.full_name?.split(" ")[0] || "" })} description={d.dashboard.subtitle} action={<div className="flex gap-2"><ButtonLink href="/search" variant="outline">{d.dashboard.findRide}</ButtonLink><ButtonLink href="/dashboard/trips/new">{d.dashboard.publishRide}</ButtonLink></div>} />
+      <section className="relative isolate overflow-hidden rounded-[var(--radius-card)] bg-brand-900 p-5 text-white shadow-[var(--shadow-lift)] sm:p-7">
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(90%_120%_at_100%_0%,var(--color-brand-600)_0%,transparent_60%),radial-gradient(60%_80%_at_0%_100%,rgb(247_106_37/0.2)_0%,transparent_60%)]" aria-hidden />
+        <div className="flex flex-wrap items-center gap-4">
+          <Avatar path={profile?.avatar_path} name={profile?.full_name} size="lg" className="ring-2 ring-white/30" />
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-2xl font-extrabold tracking-tight sm:text-3xl">{fmt(d.dashboard.welcome, { name: profile?.full_name?.split(" ")[0] || "" })}</h1>
+            <p className="mt-0.5 text-sm text-brand-100 sm:text-base">{d.dashboard.subtitle}</p>
+          </div>
+        </div>
+        <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+          <Link href="/search" className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-white px-4 text-sm font-semibold text-brand-800 shadow-sm transition hover:bg-brand-50 active:scale-[0.98]"><Search className="size-4" aria-hidden />{d.dashboard.findRide}</Link>
+          <ButtonLink href="/dashboard/trips/new" variant="accent"><PlusCircle className="size-4" aria-hidden />{d.dashboard.publishRide}</ButtonLink>
+        </div>
+      </section>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label={d.dashboard.statUpcomingPassenger} value={bookings.length} icon={<CalendarCheck className="size-5" />} />
-        <StatCard label={d.dashboard.statUpcomingDriver} value={trips.length} icon={<Car className="size-5" />} />
-        <StatCard label={d.dashboard.statPending} value={pendingRes.count ?? 0} icon={<Bell className="size-5" />} tone="accent" />
-        <StatCard label={d.dashboard.statUnread} value={typeof unreadRes.data === "number" ? unreadRes.data : 0} icon={<MessageCircle className="size-5" />} tone="slate" />
+        <StatCard href="/dashboard/bookings" label={d.dashboard.statUpcomingPassenger} value={bookings.length} icon={<CalendarCheck className="size-5" />} />
+        <StatCard href="/dashboard/trips" label={d.dashboard.statUpcomingDriver} value={trips.length} icon={<Car className="size-5" />} />
+        <StatCard href="/dashboard/trips" label={d.dashboard.statPending} value={pendingRes.count ?? 0} icon={<Bell className="size-5" />} tone="accent" highlight={(pendingRes.count ?? 0) > 0} />
+        <StatCard href="/dashboard/messages" label={d.dashboard.statUnread} value={typeof unreadRes.data === "number" ? unreadRes.data : 0} icon={<MessageCircle className="size-5" />} tone="slate" />
       </div>
       {(pendingReviews > 0 || incomplete) && (
         <div className="grid gap-3 md:grid-cols-2">

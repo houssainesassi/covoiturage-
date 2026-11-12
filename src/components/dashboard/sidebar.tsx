@@ -39,9 +39,9 @@ type Item = { href: string; label: string; icon: React.ComponentType<{ className
 function SideNav({ groups, path }: { groups: { title: string | null; items: Item[] }[]; path: string }) {
   const isActive = (i: Item) => (i.exact ? path === i.href : path === i.href || path.startsWith(i.href + "/"));
   return (
-    <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-2 lg:mx-0 lg:block lg:space-y-5 lg:overflow-visible lg:px-0 lg:pb-0">
+    <nav className="wf-scroll-x -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 lg:mx-0 lg:block lg:space-y-4 lg:overflow-visible lg:rounded-[var(--radius-card)] lg:border lg:border-slate-200/80 lg:bg-white lg:p-3 lg:shadow-[var(--shadow-card)]">
       {groups.map((g, gi) => (
-        <div key={gi} className="flex gap-1 lg:block lg:space-y-0.5">
+        <div key={gi} className="flex gap-1.5 lg:block lg:space-y-0.5">
           {g.title && <p className="hidden px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-400 lg:block">{g.title}</p>}
           {g.items.map((i) => (
             <Link
@@ -49,11 +49,11 @@ function SideNav({ groups, path }: { groups: { title: string | null; items: Item
               href={i.href}
               aria-current={isActive(i) ? "page" : undefined}
               className={cn(
-                "flex shrink-0 items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition",
-                isActive(i) ? "bg-brand-600 text-white shadow-sm" : "text-slate-600 hover:bg-white hover:text-slate-900",
+                "flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-full border px-3.5 py-2 text-sm font-semibold transition lg:rounded-xl lg:border-0 lg:px-3",
+                isActive(i) ? "border-brand-600 bg-brand-600 text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 lg:bg-transparent",
               )}
             >
-              <i.icon className="size-4" />
+              <i.icon className="size-4 shrink-0" />
               {i.label}
             </Link>
           ))}
