@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Ban, CalendarCheck, Car, ClipboardList, Clock, ExternalLink, Flag, MessageCircle, Route, Users, Wallet } from "lucide-react";
+import { requireAdmin } from "@/lib/auth";
 import { getI18n } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { fmt, formatDate, formatNumber, formatPrice, formatRelative } from "@/lib/i18n/format";
@@ -12,6 +13,8 @@ type Stats = Record<string, number> & { daily: Day[] };
 const TARGET_LINKS: Record<string, string> = { user: "/users/", trip: "/trips/" };
 
 export default async function AdminPage() {
+  // The layout guards too, but pages render in parallel with it: redirect before any admin query.
+  await requireAdmin();
   const { d, locale } = await getI18n();
   const supabase = await createClient();
   const [stats, log] = await Promise.all([

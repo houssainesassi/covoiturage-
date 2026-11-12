@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/auth";
 import Link from "next/link";
 import { CalendarCheck } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
@@ -16,6 +17,7 @@ import { CancelBookingButton } from "@/components/admin/admin-actions";
 const STATUSES = ["pending", "confirmed", "rejected", "cancelled", "completed"] as const;
 
 export default async function AdminBookingsPage({ searchParams }: PageProps<"/admin/bookings">) {
+  await requireAdmin(); // pages render in parallel with the layout guard
   const sp = await searchParams;
   const q = textParam(sp.q);
   const status = oneOf(sp.status, STATUSES);

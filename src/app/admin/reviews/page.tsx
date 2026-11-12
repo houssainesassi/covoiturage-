@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/auth";
 import { Star } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
@@ -11,6 +12,7 @@ import { FilterSelect } from "@/components/admin/filter-select";
 import { HideButton } from "@/components/admin/admin-actions";
 
 export default async function AdminReviewsPage({ searchParams }: PageProps<"/admin/reviews">) {
+  await requireAdmin(); // pages render in parallel with the layout guard
   const sp = await searchParams;
   const q = textParam(sp.q);
   const visibility = oneOf(sp.visibility, ["visible", "hidden"] as const);

@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/auth";
 import Link from "next/link";
 import { Route } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
@@ -16,6 +17,7 @@ import { CancelTripButton } from "@/components/admin/admin-actions";
 const STATUSES = ["scheduled", "completed", "cancelled"] as const;
 
 export default async function AdminTripsPage({ searchParams }: PageProps<"/admin/trips">) {
+  await requireAdmin(); // pages render in parallel with the layout guard
   const sp = await searchParams;
   const q = textParam(sp.q);
   const status = oneOf(sp.status, STATUSES);

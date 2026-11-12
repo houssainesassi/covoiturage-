@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CheckCircle2, Flag } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
-import { getUser } from "@/lib/auth";
+import { getUser, requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/i18n/format";
 import type { ReportReason, ReportStatus } from "@/lib/supabase/database.types";
@@ -19,6 +19,7 @@ const REASONS: readonly ReportReason[] = ["inappropriate_behavior", "harassment"
 const statusTone: Record<ReportStatus, Tone> = { open: "danger", in_review: "warning", resolved: "success", dismissed: "neutral" };
 
 export default async function AdminReportsPage({ searchParams }: PageProps<"/admin/reports">) {
+  await requireAdmin(); // pages render in parallel with the layout guard
   const sp = await searchParams;
   const status = oneOf(sp.status, STATUSES) ?? "open";
   const reason = oneOf(sp.reason, REASONS);

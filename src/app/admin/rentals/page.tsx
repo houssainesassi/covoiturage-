@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/auth";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { KeyRound } from "lucide-react";
@@ -17,6 +18,7 @@ import { RentalReviewActions } from "@/components/rentals/rental-review-actions"
 
 /** Licence review queue. A listing is public only after an admin approves it. */
 export default async function AdminRentalsPage({ searchParams }: PageProps<"/admin/rentals">) {
+  await requireAdmin(); // pages render in parallel with the layout guard
   if (!rentalsEnabled()) notFound();
   const sp = await searchParams;
   const status = oneOf(sp.status, ["pending", "approved", "rejected", "hidden"] as const) ?? "pending";

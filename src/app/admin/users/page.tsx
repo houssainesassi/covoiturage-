@@ -1,7 +1,7 @@
 import { Star, Users } from "lucide-react";
 import Link from "next/link";
 import { getI18n } from "@/lib/i18n/server";
-import { getUser } from "@/lib/auth";
+import { getUser, requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatNumber } from "@/lib/i18n/format";
 import { formatTunisianPhone } from "@/lib/phone";
@@ -14,6 +14,7 @@ import { FilterSelect } from "@/components/admin/filter-select";
 import { UserActions } from "@/components/admin/admin-actions";
 
 export default async function AdminUsersPage({ searchParams }: PageProps<"/admin/users">) {
+  await requireAdmin(); // pages render in parallel with the layout guard
   const sp = await searchParams;
   const q = textParam(sp.q);
   const status = oneOf(sp.status, ["active", "suspended"] as const);
