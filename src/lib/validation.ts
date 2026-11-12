@@ -25,7 +25,6 @@ export const registerSchema = z
     email: z.string().trim().toLowerCase().email(),
     phone: z.string().trim().min(1).max(20),
     password: passwordSchema,
-    confirm: z.string(),
     terms: z.literal("on"),
   });
 

@@ -65,7 +65,7 @@ async function main() {
   const signUp = async (page, { name, email, phone, password = PW, next }) => {
     await page.goto(`${APP}/auth/register${next ? `?next=${encodeURIComponent(next)}` : ""}`);
     await page.fill("#fullName", name); await page.fill("#email", email); await page.fill("#phone", phone);
-    await page.fill("#password", password); await page.fill("#confirm", password); await page.check('input[name="terms"]');
+    await page.fill("#password", password); await page.check('input[name="terms"]');
     await page.click('button[type="submit"]');
   };
   const login = async (page, email, password) => {

@@ -440,6 +440,7 @@ const ar: Dictionary = {
       chattyYes: "يحب يحكي",
       chattyNo: "يحب السكات",
     },
+    contactAfterBooking: "بعد ما تحجز، تنجم تحكي مع الشيفور بميساج من داخل التطبيق، ولا تاخو النومرو متاعو وتكلمو طول.",
     approvalHint: "الشيفور يوافق على كل طلب.",
     passengersOnBoard: "الركاب",
     noPassengersYet: "ما فماش ركاب مازال",

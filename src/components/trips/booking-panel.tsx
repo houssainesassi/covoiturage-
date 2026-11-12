@@ -2,7 +2,7 @@
 import { useFormAction } from "@/lib/use-form-action";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Minus, PartyPopper, Plus, Search } from "lucide-react";
+import { MessageCircle, Minus, PartyPopper, Plus, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { requestBookingAction } from "@/actions/bookings";
@@ -99,6 +99,12 @@ export function BookingPanel({ tripId, price, seatsAvailable, state, booking, in
       <input type="hidden" name="seats" value={seats} />
     </div>
   );
+  const contactNote = (
+    <p className="flex items-start gap-2 rounded-xl bg-brand-50 p-3 text-sm text-brand-800" data-testid="contact-after-booking">
+      <MessageCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+      {d.trip.contactAfterBooking}
+    </p>
+  );
   const total = (
     <div className="flex items-center justify-between rounded-xl bg-sand-100 px-4 py-3">
       <span className="text-sm text-slate-600">{d.trip.totalPrice}</span>
@@ -111,6 +117,7 @@ export function BookingPanel({ tripId, price, seatsAvailable, state, booking, in
       <div className="space-y-4">
         {seatPicker}
         {total}
+        {contactNote}
         <p className="text-sm text-slate-500">{d.auth.loginToBook}</p>
         <Link href={`/auth/login?next=${encodeURIComponent(`/trips/${tripId}?seats=${seats}`)}`} className={buttonClass("primary", "lg", "w-full")}>{d.trip.loginToBook}</Link>
       </div>
@@ -138,6 +145,7 @@ export function BookingPanel({ tripId, price, seatsAvailable, state, booking, in
       <input type="hidden" name="tripId" value={tripId} />
       {seatPicker}
       {total}
+      {contactNote}
       {result && !result.ok && <FormError message={d.errors[result.error]} />}
       <SubmitButton pending={pending} size="lg" className="w-full">{d.trip.bookRequest}</SubmitButton>
       <p className="text-center text-xs text-slate-500">{d.trip.approvalHint} {d.trip.paymentNote}</p>

@@ -66,7 +66,6 @@ export async function registerAction(_: ActionResult | null, fd: FormData): Prom
     email: fd.get("email"),
     phone: fd.get("phone") ?? "",
     password: fd.get("password"),
-    confirm: fd.get("confirm"),
     terms: fd.get("terms"),
   };
   const parsed = registerSchema.safeParse(raw);
@@ -80,7 +79,6 @@ export async function registerAction(_: ActionResult | null, fd: FormData): Prom
     return fail(fields.terms ?? "validation", fields);
   }
   const v = parsed.data;
-  if (v.password !== v.confirm) return fail("password_mismatch", { confirm: "password_mismatch" });
   const phone = normalizeTunisianPhone(v.phone);
   if (!phone) return fail("invalid_phone", { phone: "invalid_phone" });
   // Every new account must confirm its email. If Supabase would auto-confirm it, refuse to create it.

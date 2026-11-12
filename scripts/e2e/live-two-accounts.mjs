@@ -44,7 +44,6 @@ async function signUp(page, name, email, phone) {
   await page.fill('#email', email);
   await page.fill('#phone', phone);
   await page.fill('#password', PASS);
-  await page.fill('#confirm', PASS);
   await page.check('input[name="terms"]');
   await Promise.all([page.waitForURL((u) => !u.pathname.startsWith('/auth/register'), { timeout: 30000 }), page.click('form button[type="submit"]')]);
   check(`sign-up ${name} → ${new URL(page.url()).pathname}`, /complete-profile|dashboard|\/$/.test(page.url()));

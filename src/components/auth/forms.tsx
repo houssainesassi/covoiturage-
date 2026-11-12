@@ -60,9 +60,6 @@ export function RegisterForm({ next }: { next?: string }) {
       <Field label={d.auth.password} htmlFor="password" error={err("password")} hint={d.auth.passwordRules}>
         <Input id="password" name="password" type="password" autoComplete="new-password" required minLength={8} aria-invalid={!!err("password")} />
       </Field>
-      <Field label={d.auth.confirmPassword} htmlFor="confirm" error={err("confirm")}>
-        <Input id="confirm" name="confirm" type="password" autoComplete="new-password" required aria-invalid={!!err("confirm")} />
-      </Field>
       <Checkbox
         name="terms"
         required

@@ -440,6 +440,7 @@ const fr: Dictionary = {
       chattyYes: "Aime discuter",
       chattyNo: "Préfère le silence",
     },
+    contactAfterBooking: "Après la réservation, vous pourrez écrire au conducteur dans l'application ou obtenir son numéro pour l'appeler.",
     approvalHint: "Le conducteur valide chaque demande.",
     passengersOnBoard: "Passagers à bord",
     noPassengersYet: "Aucun passager pour l'instant",

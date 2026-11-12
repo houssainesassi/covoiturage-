@@ -442,6 +442,7 @@ const en = {
       chattyYes: "Likes to chat",
       chattyNo: "Prefers silence",
     },
+    contactAfterBooking: "After booking, you can message the driver in the app or get their phone number to call them.",
     approvalHint: "The driver approves each request.",
     passengersOnBoard: "Passengers on board",
     noPassengersYet: "No passengers yet",
