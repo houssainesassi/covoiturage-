@@ -2,12 +2,12 @@ import type { Dictionary } from "./en";
 
 const fr: Dictionary = {
   meta: {
-    title: "Wasalni — Covoiturage à El Fahs, Zaghouan et dans toute la Tunisie",
+    title: "Waselni Fahs — Covoiturage à El Fahs, Zaghouan et dans toute la Tunisie",
     description:
       "Trouvez ou proposez un trajet entre El Fahs, Zaghouan, Tunis, Sousse, Sfax et toutes les villes de Tunisie. Partagez les frais, voyagez ensemble, en toute confiance.",
   },
   common: {
-    appName: "Wasalni",
+    appName: "Waselni Fahs",
     search: "Rechercher",
     publish: "Proposer un trajet",
     login: "Se connecter",
@@ -105,7 +105,7 @@ const fr: Dictionary = {
     phone: "Numéro de téléphone",
     phoneHint: "Numéro tunisien, ex. 22 123 456",
     forgotPassword: "Mot de passe oublié ?",
-    noAccount: "Nouveau sur Wasalni ?",
+    noAccount: "Nouveau sur Waselni Fahs ?",
     haveAccount: "Vous avez déjà un compte ?",
     loginCta: "Se connecter",
     registerCta: "Créer mon compte",
@@ -138,7 +138,7 @@ const fr: Dictionary = {
     email_send_failed: "Impossible d’envoyer l’e-mail de confirmation. Réessayez plus tard ou contactez le support.",
     otp_invalid: "Ce code est incorrect, expiré ou déjà utilisé. Vérifiez-le ou demandez-en un nouveau.",
     otp_expired: "Ce code a expiré. Demandez-en un nouveau.",
-    phone_taken: "Ce numéro est déjà vérifié sur un autre compte Wasalni. Connectez-vous avec ce compte ou utilisez un autre numéro.",
+    phone_taken: "Ce numéro est déjà vérifié sur un autre compte Waselni Fahs. Connectez-vous avec ce compte ou utilisez un autre numéro.",
     sms_send_failed: "Impossible d'envoyer le SMS pour le moment. Vérifiez le numéro et réessayez dans quelques minutes.",
     phone_unverified: "Vérifiez votre numéro par SMS pour continuer.",
     account_unverified: "Vérifiez votre e-mail ou votre numéro de téléphone pour continuer.",
@@ -215,7 +215,7 @@ const fr: Dictionary = {
   },
   home: {
     heroBadge: "Covoiturage · El Fahs · Zaghouan · Tunisie",
-    heroTitle: "Besoin d'aller à Tunis ? Wasalni.",
+    heroTitle: "Besoin d'aller à Tunis ? Waselni Fahs.",
     heroSubtitle: "Trajets partagés d'El Fahs vers toute la Tunisie.",
     heroFind: "Trouver un trajet",
     heroFindHint: "Je cherche une place",
@@ -283,7 +283,7 @@ const fr: Dictionary = {
     infoPayBody: "En espèces, directement au conducteur. Pas de paiement en ligne.",
     infoContactTitle: "Contact",
     infoContactBody: "Écrivez au conducteur une fois connecté. Son numéro s'affiche dès que vous réservez.",
-    legalNote: "Wasalni met en relation des particuliers et ne transporte personne. Le prix par place est une participation aux frais du trajet.",
+    legalNote: "Waselni Fahs met en relation des particuliers et ne transporte personne. Le prix par place est une participation aux frais du trajet.",
     step1: "Choisissez une destination",
     step2: "Réservez une place",
     step3: "Partagez les frais",
@@ -312,8 +312,8 @@ const fr: Dictionary = {
     photosRequired: "Ajoutez au moins une photo.",
     submit: "Envoyer pour vérification",
     saved: "Annonce envoyée pour vérification.",
-    priceNote: "Le prix se fixe directement entre vous et l'agence. Wasalni ne prend aucun paiement.",
-    legalNote: "Wasalni affiche seulement les annonces ; le contrat de location est entre vous et l'agence. Vérifiez le contrat et l'assurance avant de payer.",
+    priceNote: "Le prix se fixe directement entre vous et l'agence. Waselni Fahs ne prend aucun paiement.",
+    legalNote: "Waselni Fahs affiche seulement les annonces ; le contrat de location est entre vous et l'agence. Vérifiez le contrat et l'assurance avant de payer.",
     call: "Appeler",
     status: {
       pending: "En vérification",
@@ -647,7 +647,7 @@ const fr: Dictionary = {
     noData: "Effectuez votre premier trajet pour voir vos statistiques ici.",
     upcoming: "Trajets à venir",
     pendingRequests: "Demandes en attente",
-    note: "Les montants sont payés directement par les passagers. Wasalni ne prend aucune commission.",
+    note: "Les montants sont payés directement par les passagers. Waselni Fahs ne prend aucune commission.",
   },
   messages: {
     title: "Messages",
@@ -948,18 +948,18 @@ const fr: Dictionary = {
   footer: {
     tagline: "Le covoiturage à El Fahs, Zaghouan et dans toute la Tunisie.",
     platform: "Plateforme",
-    company: "Wasalni",
+    company: "Waselni Fahs",
     legal: "Légal",
     howItWorks: "Comment ça marche",
     help: "Aide & FAQ",
     terms: "Conditions d'utilisation",
     privacy: "Politique de confidentialité",
-    rights: "© {year} Wasalni. Tous droits réservés.",
+    rights: "© {year} Waselni Fahs. Tous droits réservés.",
     madeIn: "Conçu à El Fahs, Tunisie",
   },
   help: {
     title: "Aide & FAQ",
-    subtitle: "Tout ce qu'il faut savoir pour voyager avec Wasalni.",
+    subtitle: "Tout ce qu'il faut savoir pour voyager avec Waselni Fahs.",
     faq: [
       { q: "Faut-il un compte pour rechercher ?", a: "Non. Vous pouvez parcourir et rechercher tous les trajets librement. Un compte est nécessaire uniquement pour réserver, proposer un trajet, envoyer des messages ou laisser des avis." },
       { q: "Comment payer ?", a: "Vous payez le conducteur directement, en espèces, au point de rendez-vous. Le prix par place est fixé au moment de la réservation et ne peut plus changer." },
@@ -977,13 +977,13 @@ const fr: Dictionary = {
     title: "Conditions d'utilisation",
     updated: "Dernière mise à jour : novembre 2026",
     sections: [
-      { h: "1. Objet", p: "Wasalni est une plateforme qui met en relation des conducteurs disposant de places libres et des passagers allant dans la même direction, afin de partager les frais de route. Wasalni n'est pas un transporteur." },
+      { h: "1. Objet", p: "Waselni Fahs est une plateforme qui met en relation des conducteurs disposant de places libres et des passagers allant dans la même direction, afin de partager les frais de route. Waselni Fahs n'est pas un transporteur." },
       { h: "2. Comptes", p: "Vous devez fournir des informations exactes, garder vos identifiants confidentiels et avoir au moins 16 ans. Une personne ne peut détenir qu'un seul compte." },
       { h: "3. Trajets et partage des frais", p: "Les conducteurs doivent détenir un permis de conduire et une assurance valides. Le prix par place couvre uniquement les frais partagés et ne doit pas générer de bénéfice. Le paiement s'effectue directement entre membres." },
       { h: "4. Réservations et annulations", p: "Une réservation est confirmée lorsque le conducteur l'accepte. Les passagers peuvent annuler gratuitement jusqu'au départ. Les conducteurs qui annulent doivent le faire le plus tôt possible ; des annulations répétées peuvent entraîner une suspension." },
       { h: "5. Comportement", p: "Les membres s'engagent à être respectueux, ponctuels et à respecter le code de la route tunisien. Le harcèlement, la discrimination, la fraude et la conduite dangereuse sont interdits." },
-      { h: "6. Modération", p: "Wasalni peut masquer des contenus et suspendre des comptes qui enfreignent ces conditions, notamment à la suite de signalements de membres." },
-      { h: "7. Responsabilité", p: "Chaque membre est responsable de sa propre conduite. Wasalni fournit la plateforme sans garantie de disponibilité des trajets." },
+      { h: "6. Modération", p: "Waselni Fahs peut masquer des contenus et suspendre des comptes qui enfreignent ces conditions, notamment à la suite de signalements de membres." },
+      { h: "7. Responsabilité", p: "Chaque membre est responsable de sa propre conduite. Waselni Fahs fournit la plateforme sans garantie de disponibilité des trajets." },
     ],
   },
   privacy: {

@@ -1,8 +1,8 @@
 import { env } from "./env";
 
 export const site = {
-  name: "Wasalni",
-  nameAr: "وصّلني",
+  name: "Waselni Fahs",
+  nameAr: "وصّلني الفحص",
   /** Home region of the platform; drives the homepage hero, defaults & map centre. */
   homeCitySlug: env.homeCitySlug,
   homeGovernorate: "zaghouan",

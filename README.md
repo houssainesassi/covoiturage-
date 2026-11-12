@@ -1,4 +1,4 @@
-# Wasalni — Covoiturage Tunisie (El Fahs · Zaghouan · Tunisia)
+# Waselni Fahs — Covoiturage Tunisie (El Fahs · Zaghouan · Tunisia)
 
 Carpooling platform for Tunisia: guests browse and search freely; an account is required only to
 book, publish a ride, send messages and leave reviews. Interface in **Arabic (RTL), French and English**.

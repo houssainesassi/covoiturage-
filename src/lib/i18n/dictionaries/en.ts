@@ -4,12 +4,12 @@ const p = (one: string, other: string): PluralForms => ({ one, other });
 
 const en = {
   meta: {
-    title: "Wasalni — Carpooling in El Fahs, Zaghouan & all of Tunisia",
+    title: "Waselni Fahs — Carpooling in El Fahs, Zaghouan & all of Tunisia",
     description:
       "Find or offer a ride between El Fahs, Zaghouan, Tunis, Sousse, Sfax and every Tunisian city. Share costs, travel together, safely.",
   },
   common: {
-    appName: "Wasalni",
+    appName: "Waselni Fahs",
     search: "Search",
     publish: "Offer a ride",
     login: "Log in",
@@ -107,7 +107,7 @@ const en = {
     phone: "Phone number",
     phoneHint: "Tunisian number, e.g. 22 123 456",
     forgotPassword: "Forgot password?",
-    noAccount: "New to Wasalni?",
+    noAccount: "New to Waselni Fahs?",
     haveAccount: "Already have an account?",
     loginCta: "Log in",
     registerCta: "Create account",
@@ -140,7 +140,7 @@ const en = {
     email_send_failed: "We couldn't send the confirmation email. Please try again later or contact support.",
     otp_invalid: "This code is incorrect, expired or already used. Check it or request a new one.",
     otp_expired: "This code has expired. Request a new one.",
-    phone_taken: "This number is already verified on another Wasalni account. Log in with that account or use another number.",
+    phone_taken: "This number is already verified on another Waselni Fahs account. Log in with that account or use another number.",
     sms_send_failed: "We couldn't send the SMS right now. Check the number and try again in a few minutes.",
     phone_unverified: "Verify your phone number by SMS to continue.",
     account_unverified: "Verify your email or phone number to continue.",
@@ -217,7 +217,7 @@ const en = {
   },
   home: {
     heroBadge: "Carpooling · El Fahs · Zaghouan · Tunisia",
-    heroTitle: "Need a ride? Wasalni.",
+    heroTitle: "Need a ride? Waselni Fahs.",
     heroSubtitle: "Shared rides from El Fahs to all of Tunisia.",
     heroFind: "Find a ride",
     heroFindHint: "I need a seat",
@@ -285,7 +285,7 @@ const en = {
     infoPayBody: "Cash, directly to the driver. No online payment.",
     infoContactTitle: "Contact",
     infoContactBody: "Message the driver once signed in. Their phone number is shown as soon as you book.",
-    legalNote: "Wasalni connects private individuals and does not transport anyone. The price per seat is a share of the trip costs.",
+    legalNote: "Waselni Fahs connects private individuals and does not transport anyone. The price per seat is a share of the trip costs.",
     step1: "Choose a destination",
     step2: "Book a seat",
     step3: "Share the costs",
@@ -314,8 +314,8 @@ const en = {
     photosRequired: "Add at least one photo.",
     submit: "Send for review",
     saved: "Listing sent for review.",
-    priceNote: "The price is agreed directly between you and the agency. Wasalni takes no payment.",
-    legalNote: "Wasalni only displays listings; the rental contract is between you and the agency. Check the contract and insurance before paying.",
+    priceNote: "The price is agreed directly between you and the agency. Waselni Fahs takes no payment.",
+    legalNote: "Waselni Fahs only displays listings; the rental contract is between you and the agency. Check the contract and insurance before paying.",
     call: "Call",
     status: {
       pending: "Under review",
@@ -649,7 +649,7 @@ const en = {
     noData: "Complete your first ride to see statistics here.",
     upcoming: "Upcoming rides",
     pendingRequests: "Pending requests",
-    note: "Amounts are paid directly by passengers. Wasalni does not take any commission.",
+    note: "Amounts are paid directly by passengers. Waselni Fahs does not take any commission.",
   },
   messages: {
     title: "Messages",
@@ -950,18 +950,18 @@ const en = {
   footer: {
     tagline: "Carpooling in El Fahs, Zaghouan and all of Tunisia.",
     platform: "Platform",
-    company: "Wasalni",
+    company: "Waselni Fahs",
     legal: "Legal",
     howItWorks: "How it works",
     help: "Help & FAQ",
     terms: "Terms of use",
     privacy: "Privacy policy",
-    rights: "© {year} Wasalni. All rights reserved.",
+    rights: "© {year} Waselni Fahs. All rights reserved.",
     madeIn: "Made in El Fahs, Tunisia",
   },
   help: {
     title: "Help & FAQ",
-    subtitle: "Everything you need to know to travel with Wasalni.",
+    subtitle: "Everything you need to know to travel with Waselni Fahs.",
     faq: [
       { q: "Do I need an account to search?", a: "No. You can browse and search all rides freely. An account is only needed to book, offer a ride, send messages or leave reviews." },
       { q: "How do I pay?", a: "You pay the driver directly, in cash, at the meeting point. The price per seat is fixed when you book and cannot change afterwards." },
@@ -979,13 +979,13 @@ const en = {
     title: "Terms of use",
     updated: "Last updated: November 2026",
     sections: [
-      { h: "1. Purpose", p: "Wasalni is a platform connecting drivers who have empty seats with passengers going the same way, in order to share travel costs. Wasalni is not a transport operator." },
+      { h: "1. Purpose", p: "Waselni Fahs is a platform connecting drivers who have empty seats with passengers going the same way, in order to share travel costs. Waselni Fahs is not a transport operator." },
       { h: "2. Accounts", p: "You must provide accurate information, keep your credentials confidential and be at least 16 years old. One person may hold only one account." },
       { h: "3. Rides and cost sharing", p: "Drivers must hold a valid driving licence and insurance. The price per seat covers shared costs only and must not generate profit. Payment is made directly between members." },
       { h: "4. Bookings and cancellations", p: "A booking is confirmed when the driver accepts it. Passengers may cancel free of charge until departure. Drivers who cancel must do so as early as possible; repeated cancellations may lead to suspension." },
       { h: "5. Behaviour", p: "Members undertake to be respectful, punctual and to comply with the Tunisian highway code. Harassment, discrimination, fraud and dangerous driving are prohibited." },
-      { h: "6. Moderation", p: "Wasalni may hide content and suspend accounts that violate these terms, in particular after reports by members." },
-      { h: "7. Liability", p: "Each member is responsible for their own conduct. Wasalni provides the platform without guarantee of the availability of rides." },
+      { h: "6. Moderation", p: "Waselni Fahs may hide content and suspend accounts that violate these terms, in particular after reports by members." },
+      { h: "7. Liability", p: "Each member is responsible for their own conduct. Waselni Fahs provides the platform without guarantee of the availability of rides." },
     ],
   },
   privacy: {

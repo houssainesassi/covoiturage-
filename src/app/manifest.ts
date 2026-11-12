@@ -4,9 +4,9 @@ import { site } from "@/lib/site";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: `${site.name} – El Fahs`,
+    name: site.name,
     short_name: site.name,
-    description: "Covoiturage à El Fahs, Zaghouan et partout en Tunisie.",
+    description: "Waselni Fahs — covoiturage à El Fahs, Zaghouan et partout en Tunisie.",
     start_url: "/",
     scope: "/",
     display: "standalone",
