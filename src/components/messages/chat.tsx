@@ -38,7 +38,11 @@ export function Chat({ conversationId, userId, initial, canSend }: { conversatio
     return () => void supabase.removeChannel(ch);
   }, [conversationId, userId, supabase]);
 
-  useEffect(() => bottom.current?.scrollIntoView({ block: "end" }), [messages.length]);
+  // Braces matter: recent browsers make scrollIntoView() return a Promise, and an effect that
+  // returns anything but a cleanup function crashes React when the page refreshes.
+  useEffect(() => {
+    bottom.current?.scrollIntoView({ block: "end" });
+  }, [messages.length]);
 
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
