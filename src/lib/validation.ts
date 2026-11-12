@@ -7,7 +7,12 @@ const trimmed = (max: number) => z.string().trim().max(max);
 const optionalText = (max: number) =>
   z.string().trim().max(max).optional().transform((v) => (v ? v : null));
 
-export const passwordSchema = z.string().min(8).max(72).regex(/[A-Za-z]/).regex(/\d/);
+/** Must equal "Email OTP Length" in Supabase Auth → Providers → Email (the {{ .Token }} in the sign-up email). */
+export const EMAIL_CODE_LENGTH = 8;
+/** Accepts pasted codes with spaces or dashes; keeps the digits only. */
+export const emailCodeSchema = z.string().transform((s) => s.replace(/\D/g, "")).pipe(z.string().length(EMAIL_CODE_LENGTH));
+
+export const passwordSchema =z.string().min(8).max(72).regex(/[A-Za-z]/).regex(/\d/);
 
 export const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email(),

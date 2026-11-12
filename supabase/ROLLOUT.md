@@ -9,7 +9,7 @@ Where steps say to stop, stop and leave production as it is. Do not fix forward.
 ## Agreed decisions (2026-11-08)
 
 - Prefixes 6 and 8 stay accepted for this release.
-- The 6-digit OTP, `{{ .Token }}` template and current expiry stay as they are.
+- The 8-digit email OTP, `{{ .Token }}` template and current expiry stay as they are.
 - **Confirm email stays off until custom SMTP is configured and tested.**
 - Migration 13 stays, but is not applied to production yet.
 - All accounts, roles, bookings, trips and profile data are preserved.
@@ -190,7 +190,7 @@ Use the smallest step that fixes the problem.
 
 ### OTP settings
 
-No code or template sets OTP length or expiry. The app requires exactly 6 digits, the template uses `{{ .Token }}`, and no text promises a time limit. `OTP_WINDOW_MS` in `src/actions/auth.ts` is a rate-limit window, not an expiry. Keep the expiry as it is: expired codes show the normal "incorrect or expired" message, and users can request a new one.
+No code or template sets OTP length or expiry. The app requires exactly 8 digits (`EMAIL_CODE_LENGTH`), the template uses `{{ .Token }}`, and no text promises a time limit. `OTP_WINDOW_MS` in `src/actions/auth.ts` is a rate-limit window, not an expiry. Keep the expiry as it is: expired codes show the normal "incorrect or expired" message, and users can request a new one.
 
 ### Rate limits
 
@@ -312,7 +312,7 @@ The guard covers the app only. Anyone can call the Supabase Auth API directly, s
 | R7 | Vercel | Deploy the approved commits. Sign-up shows both methods unavailable until R9. | `/`, `/auth/login`, existing user login + bookings OK |
 | R8 | Database | `npx supabase db push` (migrations 8 to 15 in order; decide on 12 and 13 first, see below). Then `supabase/postflight.sql`. | `npx supabase migration list`: all applied; postflight as in D3 |
 | R9 | Auth → Email Templates → Confirm signup | Paste `supabase/templates/confirm-signup.html` | |
-| R10 | Auth → Providers → Email | **Confirm email on.** Email OTP length 6. Keep expiry. | `mailer_autoconfirm` false; register page shows both methods |
+| R10 | Auth → Providers → Email | **Confirm email on.** Email OTP length 8. Keep expiry. | `mailer_autoconfirm` false; register page shows both methods |
 | R11 | Auth → Hooks → Before User Created | Postgres function `public.hook_before_user_created`, enabled | Phone sign-up with `+33…` via API is refused 403; +216 and email accepted |
 | R12 | Production, your own SIM and inbox | Full test list in "6. How to test" (phone sign-up, wrong code, correct code, login by number, reset by SMS, duplicate number; same for email; existing user books) | All pass; delete test accounts |
 | R13 | Logs | 24 h: Auth logs for 429, `sms_send_failed`, `over_sms_send_rate_limit`; Vercel for `[auth]` lines; Twilio spend | No anomalies |

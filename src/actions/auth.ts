@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { fail, toErrorCode, type ActionResult } from "@/lib/errors";
-import { loginSchema, passwordSchema, registerSchema } from "@/lib/validation";
+import { emailCodeSchema, loginSchema, passwordSchema, registerSchema } from "@/lib/validation";
 import { normalizeTunisianPhone } from "@/lib/phone";
 import { emailVerificationEnabled } from "@/lib/auth-settings";
 import { getOrigin, getClientIp } from "@/lib/request";
@@ -30,8 +30,16 @@ function afterConfirm(next: string) {
   return `/auth/complete-profile?next=${encodeURIComponent(target)}`;
 }
 
-const checkEmailUrl = (email: string, next: string, unconfirmed = false) =>
-  `/auth/check-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}${unconfirmed ? "&unconfirmed=1" : ""}`;
+/** `sentAt` (ms): when Supabase sent the last email, so the resend countdown survives a reload. */
+const checkEmailUrl = (email: string, next: string, unconfirmed = false, sentAt?: number) =>
+  `/auth/check-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}${unconfirmed ? "&unconfirmed=1" : ""}${sentAt ? `&sent=${sentAt}` : ""}`;
+
+/** Supabase's per-address limit ("only request this after 42 seconds"): an email went out moments ago. */
+function secondsUntilResend(error: { code?: string; message?: string }) {
+  if (error.code !== "over_email_send_rate_limit") return null;
+  const m = /after (\d+) seconds?/i.exec(error.message ?? "");
+  return m ? Number(m[1]) : null;
+}
 
 export async function loginAction(_: ActionResult | null, fd: FormData): Promise<ActionResult> {
   const blocked = await guard("login", 20);
@@ -91,7 +99,13 @@ export async function registerAction(_: ActionResult | null, fd: FormData): Prom
       emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(afterConfirm(next))}`,
     },
   });
-  if (error) return fail(toErrorCode(error), toErrorCode(error) === "email_taken" ? { email: "email_taken" } : undefined);
+  if (error) {
+    // Same unconfirmed address signed up again within a minute: Supabase sent its email moments ago
+    // and refuses another, so continue to the "check your email" screen (no new account is created).
+    const wait = secondsUntilResend(error);
+    if (wait !== null) redirect(checkEmailUrl(v.email, next, false, Date.now() - Math.max(0, 60 - wait) * 1000));
+    return fail(toErrorCode(error), toErrorCode(error) === "email_taken" ? { email: "email_taken" } : undefined);
+  }
   // With email confirmation enabled, an existing confirmed address returns a user without identities.
   if (data.user && data.user.identities?.length === 0) return fail("email_taken", { email: "email_taken" });
   if (data.session) {
@@ -100,7 +114,7 @@ export async function registerAction(_: ActionResult | null, fd: FormData): Prom
     await supabase.auth.signOut();
     return fail("signup_unavailable");
   }
-  redirect(checkEmailUrl(v.email, next));
+  redirect(checkEmailUrl(v.email, next, false, Date.now()));
 }
 
 /** "Resend the confirmation email" on /auth/check-email. Same answer whether or not the address exists. */
@@ -127,7 +141,34 @@ export async function resendConfirmationAction(_: ActionResult | null, fd: FormD
   return { ok: true };
 }
 
-const LINK_TYPES = ["signup", "email", "recovery", "email_change"] as const satisfies readonly EmailOtpType[];
+/**
+ * Code form on /auth/check-email: the 8-digit {{ .Token }} from the sign-up email.
+ * verifyOtp type "email" confirms the address and starts the session on this device.
+ * Wrong, expired and used codes get one answer, so the form cannot test addresses.
+ */
+export async function verifySignupCodeAction(_: ActionResult | null, fd: FormData): Promise<ActionResult> {
+  const blocked = await guard("verify-code", 30);
+  if (blocked) return blocked;
+  const email = emailField.safeParse(fd.get("email"));
+  if (!email.success) return fail("invalid_email", { email: "invalid_email" });
+  const token = emailCodeSchema.safeParse(String(fd.get("code") ?? ""));
+  if (!token.success) return fail("otp_invalid", { code: "otp_invalid" });
+  // Per address too: 10 guesses per 10 min against a 10^8 code space, on top of Supabase's own limit.
+  if (!rateLimit(`verify-code-email:${email.data}`, 10, WINDOW_MS)) return fail("rate_limited");
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.verifyOtp({ email: email.data, token: token.data, type: "email" });
+  if (error) {
+    const code = toErrorCode(error);
+    if (code === "rate_limited" || code === "network_error") return fail(code);
+    return fail("otp_invalid", { code: "otp_invalid" });
+  }
+  if (!data.user || !data.session) return fail("otp_invalid", { code: "otp_invalid" });
+  revalidatePath("/", "layout");
+  const returnTo = safeNext(typeof data.user.user_metadata?.return_to === "string" ? data.user.user_metadata.return_to : "", "/");
+  redirect(`${afterConfirm(returnTo)}&toast=confirmed`);
+}
+
+const LINK_TYPES =["signup", "email", "recovery", "email_change"] as const satisfies readonly EmailOtpType[];
 
 /**
  * Button on /auth/confirm. The link in the email only opens a page; the token is

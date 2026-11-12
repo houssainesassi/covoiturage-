@@ -57,7 +57,7 @@ npx supabase db push --db-url "$STAGING_DB_URL" --dry-run   # expect 20261108000
 npx supabase db push --db-url "$STAGING_DB_URL"
 ```
 
-Then in the staging dashboard: paste `supabase/templates/confirm-signup.html` into **Confirm signup**, check OTP length is 6, turn on **Confirm email**, and set one user's role to admin in the SQL Editor:
+Then in the staging dashboard: paste `supabase/templates/confirm-signup.html` into **Confirm signup**, check Email OTP Length is 8, turn on **Confirm email**, and set one user's role to admin in the SQL Editor:
 
 ```sql
 update public.profiles set role = 'admin' where id = '<user uuid>';

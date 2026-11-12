@@ -50,7 +50,7 @@ applied (it runs in one transaction) and we need another way.
 | SMTP Settings | custom SMTP (Resend), sender `no-reply@<your domain>`, name `Waselni Fahs`; domain verified in Resend (SPF + DKIM, DMARC recommended) |
 | Rate limits → emails per hour | about 100 (built-in sender: 2/h, unusable) |
 | Email: minimum interval between emails | 60 s (the app's resend countdown) |
-| Email OTP expiration | 3600 s (default; link valid 1 h) |
+| Email OTP expiration / length | 3600 s (default; code and links valid 1 h) / 8 digits |
 | URL Configuration → Site URL | the app URL for this environment (staging: the preview URL) |
 | URL Configuration → Redirect URLs | `<app>/auth/confirm`, `<app>/auth/callback`, `<app>/**` |
 | Email templates | Confirm signup = `supabase/templates/confirm-signup.html`; Reset password = `reset-password.html`; Change email address = `change-email.html` |
@@ -59,7 +59,10 @@ applied (it runs in one transaction) and we need another way.
 Subjects: `Waselni Fahs: أكّد الإيمايل / Confirmez votre e-mail`, `Waselni Fahs: كلمة السرّ / Mot de passe`,
 `Waselni Fahs: تبديل الإيمايل / Changement d'e-mail`.
 
-The templates link to `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=…`. That page only shows
+Confirm signup sends the 8-digit `{{ .Token }}` (no link): the user types it on /auth/check-email, which calls
+`verifyOtp({ type: "email" })`. Email OTP Length must be 8.
+
+Reset password and Change email link to `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=…`. That page only shows
 a button; the token is used when it is pressed. So links work on any device, and mail scanners
 (Outlook Safe Links) that open links do not use them up.
 

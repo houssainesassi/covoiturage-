@@ -32,12 +32,13 @@ Supabase (Postgres, Auth, Storage, Realtime) · Tailwind CSS 4 · Leaflet + Open
 4. `npm run dev` → http://localhost:3000
 
 ### Supabase dashboard configuration
-- **Auth → URL Configuration:** Site URL = your domain; add `https://<domain>/auth/callback` (and
-  `http://localhost:3000/auth/callback`) to Redirect URLs.
+- **Auth → URL Configuration:** Site URL = `https://waselni-fahs.vercel.app` (never localhost: the reset-password and
+  change-email templates link to `{{ .SiteURL }}`); Redirect URLs = `https://waselni-fahs.vercel.app/**`
+  (add `http://localhost:3000/**` only on a dev project).
 - **Auth → SMTP:** configure a custom SMTP provider. Required: Supabase's default sender only reaches team members.
 - **Email verification (mandatory):** deploy the app, apply the migrations and set up SMTP, then:
   1. **Auth → Email Templates → Confirm signup:** paste `supabase/templates/confirm-signup.html` (it sends `{{ .Token }}`, not a link).
-  2. **Auth → Providers → Email:** check that **Email OTP Length** is 6 (the app accepts exactly 6 digits), leave the expiry unchanged, and turn **Confirm email** on.
+  2. **Auth → Providers → Email:** check that **Email OTP Length** is 8 (the app accepts exactly 8 digits, `EMAIL_CODE_LENGTH` in `src/lib/validation.ts`), leave the expiry unchanged, and turn **Confirm email** on.
 - **Database → Extensions:** enable `pg_cron` (then re-run migration 6) — otherwise set `CRON_SECRET`
   and `SUPABASE_SECRET_KEY` so Vercel Cron calls `/api/cron`.
 - **Create the first admin** (SQL Editor): `update public.profiles set role = 'admin' where id = '<user uuid>';`
